@@ -1,0 +1,25 @@
+# Runtime device state and private credentials - never commit
+config.conf
+original.props
+system.prop
+ssaid-data/
+keybox-vault/
+integrity-data/
+*.pem
+*.key
+*.pk8
+*.p12
+*.pfx
+*.jks
+*.keystore
+keybox.xml
+provider-original.xml
+.env
+.env.*
+# Local generated artifacts and temporary files
+dist/
+*.tmp
+*.bak
+__pycache__/
+.pytest_cache/
+.DS_Store

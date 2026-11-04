@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d111a">
+<title>FingerStore</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1018;--card:#171d2a;--card2:#1d2534;--ink:#f1f4ff;--sub:#aab8cd;--border:#323c4d;--primary:#a8c7ff;--good:#7ad8bd;--warn:#ffcd80;--shadow:0 16px 54px #0006}
+@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f6fb;--card:#fff;--card2:#eef3fc;--ink:#172338;--sub:#596981;--border:#d4dce9;--primary:#2849a7;--good:#06745f;--warn:#946002;--shadow:0 12px 35px #25395c1f}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Roboto,'Arial',sans-serif;background:var(--bg);color:var(--ink)}body{padding:26px 18px calc(144px + env(safe-area-inset-bottom,0px))}
+main{max-width:720px;margin:auto}h1{font-size:27px;letter-spacing:-.7px;line-height:1.15;margin:14px 0 10px;font-weight:760}h2{font-size:15px;letter-spacing:.02em;margin:0 0 15px}p{color:var(--sub);line-height:1.47;margin:0}.eyebrow{font-size:12px;letter-spacing:.18em;font-weight:800;color:var(--primary);text-transform:uppercase}.lead{font-size:14px;max-width:610px}.card{border-radius:24px;background:var(--card);padding:22px;margin-top:19px;border:1px solid var(--border)}.status{display:flex;align-items:center;gap:11px;flex-wrap:wrap}.dot{height:9px;width:9px;border-radius:50%;background:var(--sub)}.dot.on{background:var(--good)}.hint{font-size:12px;color:var(--sub);margin-top:8px}.statusline{margin-top:15px;font-size:13px;overflow-wrap:anywhere}.token{display:inline-flex;border-radius:99px;align-items:center;padding:6px 10px;background:var(--card2);color:var(--sub);font-size:12px;font-weight:700}.row{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}.field{margin-bottom:19px}.field:last-child{margin-bottom:0}label{font-weight:650;font-size:13px;display:block;margin-bottom:9px}textarea,input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px;color:var(--ink);font:inherit;font-size:14px;outline:none}textarea{resize:vertical;min-height:100px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.6}input:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 12%,transparent)}input[type=date]{min-height:49px}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.switchrow{display:flex;justify-content:space-between;gap:12px;align-items:center}.switchrow input{width:20px;height:20px;accent-color:var(--primary)}.switchrow strong{font-size:13px}.switchrow p{font-size:12px;margin-top:5px}.footnote{font-size:12px;padding:15px 0 0}.actions{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;width:min(calc(100% - 28px),610px);padding:10px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow);border-radius:23px;display:flex;gap:9px;align-items:center;backdrop-filter:blur(22px)}button{border:0;border-radius:15px;padding:13px 17px;font:inherit;font-size:13px;font-weight:760;cursor:pointer;min-height:44px}button:disabled{opacity:.5;cursor:wait}.primary{background:var(--primary);color:var(--bg);flex:1}.neutral{background:var(--card2);color:var(--ink)}.danger{background:var(--card2);color:#ed8e90}.link{border:0;background:transparent;padding:6px 0;color:var(--primary);min-height:0;font-size:12px}.notice{font-size:12px;line-height:1.5;border-radius:15px;background:var(--card2);padding:13px 15px;margin-top:16px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere}.notice.error{color:#ff979d}.notice.success{color:var(--good)}.current{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-word;line-height:1.6;margin:7px 0 0;color:var(--sub)}.actions .neutral{flex:0 0 auto}@media(max-width:500px){.card{padding:18px}.two{grid-template-columns:1fr}.actions{gap:6px}.actions button{padding:12px 13px}h1{font-size:25px}}
+
+.sub-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.sub-actions button{flex:1 1 auto}
+.code-note{font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.field input[type=file]{padding:12px}.section-label{font-size:12px;color:var(--sub)}
+.auto-switch{border-radius:17px;background:var(--card2);padding:14px;margin-top:4px}.identity-grid .field{margin-bottom:5px}.identity-grid{margin-bottom:18px}.reboot{white-space:nowrap}.field input[readonly]{opacity:.8;cursor:default;border-style:dashed}.actions .reboot{flex:0 0 auto}@media(max-width:420px){.actions button{padding:11px 9px;font-size:12px}.actions{width:calc(100% - 20px)}}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">KernelSU · Systemless</div>
+<h1>FingerStore</h1>
+<p class="lead">Edit the Android build fingerprint, device identity and dates. Settings persist across restarts until you change or restore them.</p>
+<section class="card" aria-labelledby="statusTitle">
+  <div class="row"><h2 id="statusTitle" style="margin:0">Current state</h2><span class="token" id="ready">Connecting…</span></div>
+  <div class="status" style="margin-top:17px"><span class="dot" id="dot"></span><strong id="statusText">Checking module…</strong></div>
+  <div class="statusline"><span class="hint">Persistence</span><div class="current" id="persistence">Checking…</div></div>
+  <div class="statusline"><span class="hint">Active build fingerprint</span><div class="current" id="currentFp">—</div></div>
+  <div class="statusline"><span class="hint">Active build timestamp (UTC)</span><div class="current" id="currentDate">—</div></div>
+  <div class="statusline"><span class="hint">Active security patch</span><div class="current" id="currentPatch">—</div></div>
+  <div class="notice" id="propertyCheck" role="status" aria-live="polite">Checking saved and active build properties…</div>
+  <div class="two" style="margin-top:14px">
+    <div class="statusline"><span class="hint">Brand</span><div class="current" id="currentBrand">—</div></div>
+    <div class="statusline"><span class="hint">Device</span><div class="current" id="currentDevice">—</div></div>
+    <div class="statusline"><span class="hint">Model · Build.MODEL</span><div class="current" id="currentModel">—</div></div>
+    <div class="statusline"><span class="hint">Product code · Build.PRODUCT</span><div class="current" id="currentName">—</div></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="link" id="loadCurrent" type="button">Use currently active values</button><button class="link" id="refresh" type="button">Refresh state ↻</button></div>
+</section>
+<section class="card" aria-labelledby="editorTitle">
+  <h2 id="editorTitle">Custom build information</h2>
+  <div class="field"><label for="fingerprint">Build fingerprint</label><textarea id="fingerprint" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="brand/product/device:version/build-id/incremental:user/release-keys"></textarea><div class="hint">Paste a complete, genuine Android build fingerprint. Keep it compatible with your ROM.</div></div>
+  <div class="switchrow auto-switch" style="margin-bottom:17px">
+    <div><strong>Auto-fill identity from fingerprint</strong><p>Off by default. Brand, product and device come from the fingerprint; model is inferred only when recognized.</p></div>
+    <input type="checkbox" id="autofill" aria-label="Auto-fill device identity from build fingerprint">
+  </div>
+  <div class="two identity-grid">
+    <div class="field"><label for="brand">Brand</label><input id="brand" maxlength="90" autocomplete="off" spellcheck="false" placeholder="samsung"></div>
+    <div class="field"><label for="device">Device codename</label><input id="device" maxlength="90" autocomplete="off" spellcheck="false" placeholder="r13s"></div>
+    <div class="field"><label for="model">Model · ro.product.model</label><input id="model" maxlength="90" autocomplete="off" spellcheck="false" placeholder="SM-S731B"><div class="hint" id="modelHint">The retail model is not always encoded in the fingerprint.</div></div>
+    <div class="field"><label for="name">Product code · ro.product.name</label><input id="name" maxlength="90" autocomplete="off" spellcheck="false" placeholder="r13sxxx"><div class="hint">Second segment of the fingerprint (brand/product/device:…). Do not put the model number here.</div></div>
+    <div class="field"><label for="manufacturer">Manufacturer</label><input id="manufacturer" maxlength="90" autocomplete="off" spellcheck="false" placeholder="samsung"></div>
+  </div>
+  <div class="two">
+    <div class="field"><label for="date">Build date (UTC)</label><input id="date" type="date" min="2000-01-01" max="2100-01-01"><div class="hint">Controls ro.build.date and ro.build.date.utc</div></div>
+    <div class="field"><label for="patch">Security patch level (optional)</label><input id="patch" placeholder="YYYY-MM-DD" inputmode="numeric" maxlength="10"><div class="hint">Leave blank to leave this property untouched</div></div>
+  </div>
+  <div class="switchrow" style="margin-top:8px"><div><strong>Mirror existing partition build and product values</strong><p>Advanced: build properties in system, product, vendor, system_ext, odm and bootimage, plus existing product identity variants.</p></div><input type="checkbox" id="partitions" aria-label="Mirror existing partition build values"></div>
+  <div class="notice" id="fingerprintGuide">Fingerprint layout: brand / product code / device codename : Android version / build ID / incremental : build type / tags. Model is a separate property.</div>
+  <div class="notice">Build properties only. Google generates the Play Integrity verdict labels and test ID; they cannot be edited here. Changing build properties cannot guarantee Play Integrity or hardware attestation.</div>
+</section>
+<p class="footnote">Changes are saved when you tap Apply. Reboot after applying or restoring for Android and already-running apps to reload build identity. Some hardware-backed values cannot be spoofed by a systemless module.</p>
+
+<section class="card" aria-labelledby="ssaidTitle">
+  <div class="row"><h2 id="ssaidTitle" style="margin:0">Android ID / SSAID</h2><span class="token">Per-app · Android 8+</span></div>
+  <p class="hint">Edit the 64-bit Android ID seen by a selected app. Only an existing SSAID entry can be changed. Changes are staged and installed before SettingsProvider starts on your next reboot. No live database editing.</p>
+  <div class="field" style="margin-top:18px"><label for="ssaidPackage">App package name (owner user only)</label><input id="ssaidPackage" placeholder="com.example.app" spellcheck="false" autocapitalize="off" autocomplete="off"><div class="hint">Use a package already installed and listed in Android's SSAID database. Do not select system apps.</div></div>
+  <div class="switchrow auto-switch" style="margin:10px 0 17px">
+    <div><strong>Sync SSAID with saved build fingerprint</strong><p>Optional. Derives a stable, app-specific 16-digit hex ID using the selected fingerprint and a locally generated secret salt. Changing the fingerprint restages the selected app ID.</p></div>
+    <input type="checkbox" id="ssaidSync" aria-label="Sync this app SSAID with the saved build fingerprint">
+  </div>
+  <div class="field"><label for="ssaidValue">Manual SSAID (16 hexadecimal characters)</label><input id="ssaidValue" maxlength="16" placeholder="0123456789abcdef" spellcheck="false" autocapitalize="off" autocomplete="off"><div class="hint">Available when sync is off. Per-app ID is different from Settings.Secure's legacy system Android ID.</div></div>
+  <div class="sub-actions"><button class="primary" id="ssaidStage" type="button">Stage ID change</button><button class="neutral" id="ssaidRestore" type="button">Restore app ID</button><button class="neutral" id="ssaidCancel" type="button">Cancel pending</button></div>
+  <div class="notice code-note" id="ssaidStatus" role="status">Checking per-app ID support…</div>
+  <p class="footnote">The first edit creates an original SSAID database backup. A source-hash check prevents overwriting other settings changes. If it detects a mismatch, the boot operation is skipped. Restoring an app ID also requires a reboot. Unlike systemless build-property overrides, an applied SSAID edit changes Android's private settings database and may persist even if this module is disabled; explicitly restore first if needed.</p>
+</section>
+<section class="card" aria-labelledby="keyboxTitle">
+  <div class="row"><h2 id="keyboxTitle" style="margin:0">Keybox loader</h2><span class="token">Local inspection</span></div>
+  <p class="hint">Custom, offline XML/PEM loader for inspecting a keybox file you own. The file stays in WebUI memory and is never uploaded, saved into the module, or passed to shell.</p>
+  <div class="field" style="margin-top:17px"><label for="keyboxFile">Choose keybox XML</label><input id="keyboxFile" type="file" accept=".xml,text/xml,application/xml" aria-label="Choose keybox XML file"></div>
+  <div class="notice code-note" id="keyboxStatus" role="status">No keybox loaded. Choose a file to check its structure and the algorithms/certificate counts.</div>
+  <div class="notice">Hardware-backed attestations are signed by KeyMint's TEE/StrongBox or a trusted provisioning service. The profile vault below can switch XML keyboxes for a separately installed Oh My Keymint software provider, but cannot turn software signing into genuinely hardware-backed attestation.</div>
+  <div class="field" style="margin-top:16px"><label for="keyboxPath">Source XML path (root-readable)</label><input id="keyboxPath" placeholder="/data/local/tmp/my-keybox.xml" spellcheck="false" autocomplete="off"><div class="hint">The document picker above is for local inspection only. To import securely, copy your private XML to a root-readable file yourself; the WebUI deliberately never embeds private keys in shell commands.</div></div>
+  <div class="field"><label for="keyboxAlias">Vault profile name</label><input id="keyboxAlias" placeholder="my_keys" maxlength="40" spellcheck="false" autocomplete="off"><div class="hint">A short label identifying this locally stored keybox.</div></div>
+  <div class="sub-actions"><button class="neutral" type="button" id="keyboxImport">Import into vault</button><button class="neutral" type="button" id="keyboxSelect">Select profile</button><button class="neutral" type="button" id="keyboxList">List profiles</button></div>
+  <div class="sub-actions"><button class="primary" type="button" id="keyboxDeploy">Deploy to software provider</button><button class="neutral" type="button" id="keyboxRestore">Restore provider backup</button><button class="danger" type="button" id="keyboxRemove">Delete unused profile</button></div>
+  <div class="notice code-note" id="keyboxVaultStatus" role="status">Checking optional software-provider integration…</div>
+  <div class="hint" style="margin-top:14px">A software provider must already be installed and enabled. No KeyMint services are replaced or restarted by this module. Deploying a keybox can affect app sign-in/security checks; always retain a backup.</div>
+</section>
+<section class="card" aria-labelledby="integrityTitle">
+  <div class="row"><h2 id="integrityTitle" style="margin:0">Integrity stability diagnostics</h2><span class="token">Read-only</span></div>
+  <p class="hint">When Play Integrity passes, capture a baseline. If labels disappear later, compare the live build properties and local software-provider file state. This cannot read or change Google's server-side verdict, prove a keybox valid, or reveal a private key.</p>
+  <div class="sub-actions"><button class="neutral" type="button" id="integrityCapture">Capture passing baseline</button><button class="primary" type="button" id="integrityCompare">Compare after failure</button><button class="neutral" type="button" id="integrityRefresh">Refresh diagnostics</button></div>
+  <div class="notice code-note" id="integrityStatus" role="status" aria-live="polite">Checking local integrity signals…</div>
+  <p class="footnote">A matching provider keybox file does NOT confirm it is loaded by KeyMint or accepted by Google. On Android 13+, Strong Integrity also requires device integrity and recent security updates to real partitions. This checker never reads keybox XML, app IDs, or credentials.</p>
+</section>
+</main>
+<div class="actions" role="group" aria-label="Module actions"><button class="neutral" id="reset" type="button">Restore</button><button class="primary" id="apply" type="button">Apply changes</button><button class="neutral reboot" id="reboot" type="button" title="Reboot Android to reload properties" aria-label="Reboot Android">↻ Reboot</button></div>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const elements = ['apply','reset','refresh','loadCurrent','reboot','ssaidStage','ssaidRestore','ssaidCancel','keyboxImport','keyboxSelect','keyboxList','keyboxDeploy','keyboxRestore','keyboxRemove','integrityCapture','integrityCompare','integrityRefresh'];
+const identityFields=['brand','device','model','name','manufacturer'];
+let autoModel=''; let lastAutofillFingerprint=null; let dirty=false;
+let active = {}, cfg = {}, moduleDir = '/data/adb/modules/build_fingerprint_date';
+const hasBridge = !!(window.ksu && typeof window.ksu.exec === 'function');
+if (hasBridge && typeof window.ksu.moduleInfo === 'function') {
+  try { const info = JSON.parse(window.ksu.moduleInfo()); if (/^\/data\/adb\/modules\/[A-Za-z0-9._-]+$/.test(info.moduleDir)) moduleDir=info.moduleDir; } catch (_) {}
+}
+const shellQuote = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'";
+function notice(s, kind='') { const el=$('ready'); el.textContent=s; el.style.color = kind === 'error' ? '#ed8e90' : ''; }
+let sequence=0;
+function cmd(args) {
+  return new Promise((resolve,reject)=>{
+    if(!hasBridge) return reject(new Error('Open this page through KernelSU Manager → Modules → FingerStore → WebUI.'));
+    const name = '__fpBuildCb' + (++sequence);
+    window[name] = (errno,stdout,stderr) => { delete window[name]; if (errno!==0) reject(new Error((stderr||stdout||('Shell command failed: '+errno)).trim())); else resolve(String(stdout||'')); };
+    try { window.ksu.exec('sh '+shellQuote(moduleDir+'/bin/fpctl.sh')+' '+args.map(shellQuote).join(' '), name); }
+    catch(e){delete window[name];reject(e)}
+  });
+}
+function ssaidCmd(args){
+  return new Promise((resolve,reject)=>{
+    if(!hasBridge)return reject(new Error('Open this page in KernelSU Manager.'));
+    const name='__fpSsaidCb'+(++sequence);
+    window[name]=(errno,stdout,stderr)=>{delete window[name];if(errno!==0)reject(new Error(String(stderr||stdout||('SSAID command failed: '+errno)).trim()));else resolve(String(stdout||''));};
+    try{window.ksu.exec('sh '+shellQuote(moduleDir+'/bin/ssaidctl.sh')+' '+args.map(shellQuote).join(' '),name)}catch(e){delete window[name];reject(e)}
+  });
+}
+function updateSsaidMode(){
+  $('ssaidValue').disabled=$('ssaidSync').checked;
+  $('ssaidValue').placeholder=$('ssaidSync').checked?'Generated from saved fingerprint':'0123456789abcdef';
+}
+async function refreshSsaid(){
+  try {
+    const state=parse(await ssaidCmd(['status']));
+    const pending=state.ssaid_pending==='1';
+    const parts=[
+      'SSAID database: '+(state.ssaid_source==='present'?'Detected':'Unavailable'),
+      'Pending reboot: '+(pending?'YES':'No'),
+    ];
+    if(pending)parts.push('Pending app: '+(state.ssaid_pending_package||'Unknown'),'Pending ID: '+(state.ssaid_pending_value||'Unknown'));
+    if(state.ssaid_last_result)parts.push('Last boot action: '+state.ssaid_last_result);
+    if(state.ssaid_legacy_id)parts.push('System legacy Android ID (NOT app SSAID): '+state.ssaid_legacy_id);
+    $('ssaidStatus').textContent=parts.join('\n');
+    if(!ssaidInitialized){
+      if(state.ssaid_profile_package)$('ssaidPackage').value=state.ssaid_profile_package;
+      if(state.ssaid_profile_mode==='manual'&&/^[a-f0-9]{16}$/i.test(state.ssaid_profile_manual||''))$('ssaidValue').value=state.ssaid_profile_manual;
+      $('ssaidSync').checked=state.ssaid_profile_mode==='sync';
+      updateSsaidMode();ssaidInitialized=true;
+    }
+  } catch(e){$('ssaidStatus').textContent='SSAID status unavailable: '+e.message;}
+}
+async function stageSsaid(){
+  const pkg=$('ssaidPackage').value.trim();
+  if(!/^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/.test(pkg))return $('ssaidStatus').textContent='Enter a valid installed package name.';
+  const synced=$('ssaidSync').checked;
+  const id=$('ssaidValue').value.trim().toLowerCase();
+  if(!synced&&!/^[0-9a-f]{16}$/.test(id))return $('ssaidStatus').textContent='SSAID must be 16 hexadecimal characters.';
+  if(synced&&dirty)return $('ssaidStatus').textContent='Apply your pending build fingerprint edits first, then stage the linked SSAID.';
+  if(!confirm('Stage a change for '+pkg+'? It takes effect only after reboot and may sign you out of that app.'))return;
+  setBusy(true);$('ssaidStatus').textContent='Validating and staging without touching the live database…';
+  try{const result=await ssaidCmd(['stage',pkg,synced?'sync':'manual',synced?'-':id]);
+    $('ssaidStatus').textContent='Staged successfully. Reboot to apply.\n'+result.trim();await refreshSsaid();}
+  catch(e){$('ssaidStatus').textContent='SSAID staging failed: '+e.message;}
+  finally{setBusy(false)}
+}
+async function restoreSsaid(){
+  const pkg=$('ssaidPackage').value.trim();
+  if(!confirm('Stage restoration of the original ID for '+pkg+'? Reboot required.'))return;
+  setBusy(true);
+  try{const result=await ssaidCmd(['restore',pkg]);$('ssaidStatus').textContent=result;await refreshSsaid();}
+  catch(e){$('ssaidStatus').textContent='Restore failed: '+e.message;}
+  finally{setBusy(false)}
+}
+async function cancelSsaid(){
+  if(!confirm('Cancel all un-applied SSAID changes? Already-applied changes remain.'))return;
+  setBusy(true);
+  try{await ssaidCmd(['clear-pending']);await refreshSsaid();}catch(e){$('ssaidStatus').textContent='Cancel failed: '+e.message;}finally{setBusy(false)}
+}
+// A local-only structural parser, not an attestation injection path.
+async function inspectKeybox(e){
+ const target=$('keyboxStatus');const file=e.target.files&&e.target.files[0];
+ if(!file){target.textContent='No keybox selected.';return;}
+ if(file.size>512*1024){target.textContent='Rejected: keybox must be smaller than 512 KiB.';return;}
+ try{
+  const content=await file.text();
+  if(/<!DOCTYPE|<!ENTITY/i.test(content))throw Error('DTD/entity declarations are not permitted.');
+  const doc=new DOMParser().parseFromString(content,'application/xml');
+  if(doc.querySelector('parsererror'))throw Error('Malformed XML.');
+  const root=doc.documentElement;
+  if(root.tagName.toLowerCase()!=='androidattestation')throw Error('Not an AndroidAttestation keybox.');
+  const keys=Array.from(root.getElementsByTagName('Key'));
+  if(!keys.length||keys.length>8)throw Error('Expected 1–8 Key elements.');
+  const algorithms=[];let certs=0;let privateKeys=0;
+  for(const key of keys){
+    const algorithm=key.getAttribute('algorithm')||'unspecified';
+    if(!/^[a-z0-9_-]{1,24}$/i.test(algorithm))throw Error('Invalid key algorithm.');
+    algorithms.push(algorithm);
+    const pk=key.getElementsByTagName('PrivateKey');
+    const cs=key.getElementsByTagName('Certificate');
+    if(pk.length!==1||cs.length<1)throw Error('Each Key needs one PrivateKey and certificate(s).');
+    for(const node of [...Array.from(pk),...Array.from(cs)]){
+      const txt=(node.textContent||'').trim();
+      const label=node.tagName==='PrivateKey'?'PRIVATE KEY':'CERTIFICATE';
+      const pattern=node.tagName==='PrivateKey'?/^-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]+-----END (?:RSA |EC )?PRIVATE KEY-----$/:/^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----$/;
+      // Envelope check for PKCS#8, RSA PKCS#1 or EC SEC1; never transmit private material.
+      if(!pattern.test(txt))throw Error('Invalid '+node.tagName+' PEM envelope.');
+    }
+    certs+=cs.length;privateKeys+=pk.length;
+  }
+  target.textContent='Parsed locally: '+keys.length+' key(s) ('+algorithms.join(', ')+'), '+certs+' certificate(s), '+privateKeys+' private key envelope(s).\nThis is STRUCTURE validation only: certificate chains, private-key correspondence, revocation and hardware provenance are NOT verified. The file has NOT been installed.';
+ }catch(ex){target.textContent='Rejected: '+ex.message;}
+ e.target.value='';
+}
+function keyboxCmd(args){
+ return new Promise((resolve,reject)=>{
+  if(!hasBridge)return reject(new Error('Open this page inside KernelSU Manager.'));
+  const name='__fpKeyboxCb'+(++sequence);
+  window[name]=(errno,stdout,stderr)=>{delete window[name];if(errno!==0)reject(new Error(String(stderr||stdout||('Keybox operation failed: '+errno)).trim()));else resolve(String(stdout||''));};
+  try{window.ksu.exec('sh '+shellQuote(moduleDir+'/bin/keyboxctl.sh')+' '+args.map(shellQuote).join(' '),name)}catch(e){delete window[name];reject(e)}
+ });
+}
+async function refreshKeybox(){
+ try{$('keyboxVaultStatus').textContent=(await keyboxCmd(['status'])).trim();}
+ catch(e){$('keyboxVaultStatus').textContent='Keybox vault status unavailable: '+e.message;}
+}
+async function keyboxOperation(op){
+ const profile=$('keyboxAlias').value.trim();const path=$('keyboxPath').value.trim();
+ if(['import','select','remove'].includes(op) && !/^[A-Za-z0-9_][A-Za-z0-9_-]{0,39}$/.test(profile)){
+  $('keyboxVaultStatus').textContent='Invalid profile name.';return;
+ }
+ if(op==='import'&&!/^\/[\x20-\x7e]{1,350}$/.test(path)){
+  $('keyboxVaultStatus').textContent='Enter a root-readable absolute XML path.';return;
+ }
+ if(op==='deploy-omk'&&!confirm('Replace the keybox of the separate Oh My Keymint SOFTWARE provider? This could affect applications, passkeys or logins. The original provider keybox is backed up. Reboot to let the provider reload its new file; this does not prove attestation trust.'))return;
+ if(op==='restore-omk'&&!confirm('Restore the ORIGINAL provider keybox from the first backup?'))return;
+ if(op==='remove'&&!confirm('Delete the unused private profile '+profile+'?'))return;
+ const params=op==='import'?[op,profile,path]:['select','remove'].includes(op)?[op,profile]:[op];
+ setBusy(true);
+ try{$('keyboxVaultStatus').textContent=(await keyboxCmd(params)).trim()+'\n'+(await keyboxCmd(['status'])).trim();}
+ catch(e){$('keyboxVaultStatus').textContent='Operation failed safely: '+e.message;}
+ finally{setBusy(false);}
+}
+function integrityCmd(args){
+  return new Promise((resolve,reject)=>{
+    if(!hasBridge)return reject(new Error('Open this page through KernelSU Manager.'));
+    const name='__fpIntegrityCb'+(++sequence);
+    window[name]=(errno,stdout,stderr)=>{delete window[name];if(errno!==0)reject(new Error(String(stderr||stdout||('Diagnostic failed: '+errno)).trim()));else resolve(String(stdout||''));};
+    try{window.ksu.exec('sh '+shellQuote(moduleDir+'/bin/integrityctl.sh')+' '+args.map(shellQuote).join(' '),name)}catch(e){delete window[name];reject(e)}
+  });
+}
+async function integrityOperation(op){
+  if(op==='capture'&&!confirm('Save the current local environment as your passing baseline? Play Integrity labels are not read by this module.'))return;
+  setBusy(true);
+  try{const output=await integrityCmd([op]);$('integrityStatus').textContent=output.trim();}
+  catch(e){$('integrityStatus').textContent='Diagnostics unavailable: '+e.message;}
+  finally{setBusy(false);}
+}
+let ssaidInitialized=false;
+function parse(s){const out={}; for(const line of s.split(/\r?\n/)){const i=line.indexOf('=');if(i>0)out[line.slice(0,i)]=line.slice(i+1);}return out;}
+function setBusy(isBusy){elements.forEach(id=>$(id).disabled=isBusy);}
+function dateFromEpoch(secs){const n=Number(secs);if(!Number.isFinite(n)||n<946684800||n>4102444800)return '';return new Date(n*1000).toISOString().slice(0,10)}
+function inferFromFingerprint(fp){
+  const m=fp.match(/^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+):[^/]+\/[^/]+\/([^/:]+):(user|userdebug|eng)\/[^/]+$/);
+  if(!m)return null;
+  let model='';
+  if(m[1]==='samsung' && /^[A-Z][0-9]{3}[A-Z](XX|OX|UE|US)[A-Z0-9]*$/.test(m[4])) model='SM-'+m[4].slice(0,5);
+  return {brand:m[1],name:m[2],device:m[3],manufacturer:m[1],model};
+}
+function updateFingerprintGuide(){
+  const inferred=inferFromFingerprint($('fingerprint').value.trim());
+  const el=$('fingerprintGuide');
+  if(!inferred){el.textContent='Fingerprint layout: brand / product code / device codename : Android version / build ID / incremental : build type / tags. Model is a separate property.';el.classList.remove('error');return;}
+  const swapped=($('name').value.trim()===inferred.model && $('model').value.trim()===inferred.name && !!inferred.model);
+  if(swapped){el.textContent='Model and product code appear SWAPPED. Expected model '+inferred.model+' and product code '+inferred.name+'.';el.classList.add('error');return;}
+  el.classList.remove('error');
+  el.textContent='Parsed fingerprint: brand '+inferred.brand+' · product '+inferred.name+' · device '+inferred.device+'. '+(inferred.model?'Recognized model '+inferred.model+'. ':'Model cannot be reliably derived; check separately.')+'The model is not the product code.';
+}
+function checkActiveProperties(state){
+  const el=$('propertyCheck');
+  el.classList.remove('error','success');
+  if(state.enabled!=='1') {el.textContent='Overrides are disabled. Active values come from your ROM or other modules.';return;}
+  const expected={current_fingerprint:state.fingerprint,current_epoch:state.epoch};
+  if(state.patch && state.patch!=='-')expected.current_patch=state.patch;
+  for(const id of identityFields)if(state[id])expected['current_'+id]=state[id];
+  const mismatches=[];
+  for(const [key,value] of Object.entries(expected)){
+    if((state[key]||'')!==value) mismatches.push(key.replace(/^current_/,''));
+  }
+  const fp=inferFromFingerprint(state.fingerprint||'');
+  const inconsistencies=[];
+  if(fp){
+    for(const key of ['brand','device','name'])if(state[key]&&state[key]!==fp[key])inconsistencies.push(key==='name'?'product code':key);
+    if(fp.model && state.model && state.model!==fp.model)inconsistencies.push('model');
+  }
+  if(mismatches.length){el.textContent='Saved and active properties differ: '+mismatches.join(', ')+'. Reboot and refresh to confirm; another module may be overriding these values.';el.classList.add('error');}
+  else {el.textContent='Saved values match active Android properties ('+Object.keys(expected).length+' checked). This verifies local property consistency, NOT Play Integrity.';el.classList.add('success');}
+  if(inconsistencies.length){el.textContent+=' Fingerprint identity differs from selected '+inconsistencies.join(', ')+'.';el.classList.add('error');}
+}
+function updateAuto(preserveManualModel=false){
+  const checked=$('autofill').checked;
+  const fingerprint=$('fingerprint').value.trim();
+  const fingerprintChanged=lastAutofillFingerprint!==fingerprint;
+  for(const id of ['brand','device','name','manufacturer']) $(''+id).readOnly=checked;
+  if(!checked){lastAutofillFingerprint=null;$('model').readOnly=false;$('modelHint').textContent='Manual model entry. The retail model is not always encoded in the fingerprint.';updateFingerprintGuide();return;}
+  lastAutofillFingerprint=fingerprint;
+  const inferred=inferFromFingerprint(fingerprint);
+  if(!inferred){if(fingerprintChanged&&!preserveManualModel)$('model').value='';$('model').readOnly=false;$('modelHint').textContent='Complete the fingerprint to infer device fields.';updateFingerprintGuide();return;}
+  for(const id of ['brand','device','name','manufacturer']) $(id).value=inferred[id];
+  if(inferred.model){$('model').value=inferred.model;autoModel=inferred.model;$('model').readOnly=true;
+    $('modelHint').textContent='Recognized Samsung model code in the build number.';
+  }else{
+    if(fingerprintChanged&&!preserveManualModel)$('model').value='';
+    autoModel='';$('model').readOnly=false;
+    $('modelHint').textContent='Model cannot be derived reliably from this fingerprint. Enter it manually if needed.';
+  }
+  updateFingerprintGuide();
+}
+function useActive(){
+  $('autofill').checked=false; $('fingerprint').value=active.current_fingerprint||'';
+  $('date').value=dateFromEpoch(active.current_epoch); $('patch').value=active.current_patch||''; $('partitions').checked=active.partitions==='1';
+  for(const id of identityFields) $(id).value=active['current_'+id]||'';
+  updateAuto(); updateFingerprintGuide(); dirty=true; notice('Active properties copied, including the reported security patch. Apply to save your selection.');
+}
+async function refresh(loadInputs=true){setBusy(true);notice('Reading properties…');try{
+ const result=await cmd(['status']); active=parse(result);cfg=active;
+ $('currentFp').textContent=cfg.current_fingerprint||'Not reported';
+ $('currentDate').textContent=(dateFromEpoch(cfg.current_epoch)||'Unknown')+' · '+(cfg.current_epoch||'—')+' seconds';
+ $('currentPatch').textContent=cfg.current_patch||'Not reported';
+ for(const id of ['brand','device','model','name']) $('current'+id[0].toUpperCase()+id.slice(1)).textContent=cfg['current_'+id]||'Not reported';
+ checkActiveProperties(cfg);
+ const enabled=cfg.enabled==='1';
+ $('statusText').textContent=enabled?'Custom properties enabled':'Original properties / overrides disabled';
+ $('persistence').textContent=enabled?'Until you edit or restore · survives reboots':'Off · originals restored';
+ $('dot').classList.toggle('on',enabled);
+ if(loadInputs){
+   $('fingerprint').value=enabled?(cfg.fingerprint||''):(cfg.current_fingerprint||'');
+   $('date').value=dateFromEpoch(enabled?cfg.epoch:cfg.current_epoch);
+   $('patch').value=(enabled&&cfg.patch!=='-')?cfg.patch:'';
+   $('partitions').checked=cfg.partitions==='1';$('autofill').checked=cfg.autofill==='1';
+   for(const id of identityFields) $(id).value=enabled?(cfg[id]||''):(cfg['current_'+id]||'');
+   updateAuto(true);updateFingerprintGuide();dirty=false;
+  }
+ notice(cfg.resetprop==='available'?'Connected · resetprop available':'Connected · resetprop unavailable',cfg.resetprop==='available'?'':'error');
+ return true;
+}catch(e){notice('Error: '+e.message,'error');$('statusText').textContent='Unable to query properties';return false;}finally{setBusy(false)}}
+async function apply(){
+  if($('autofill').checked)updateAuto();
+  const fp=$('fingerprint').value.trim(); const day=$('date').value;const patch=$('patch').value.trim()||'-';
+  for(const id of identityFields){
+    const val=$(id).value.trim();
+    if(val.length>90 || (val && !/^[A-Za-z0-9_][A-Za-z0-9_. +()\-]*$/.test(val)))
+      return notice('Invalid '+id+': use letters, numbers, spaces, dots, underscores, hyphens or parentheses.','error');
+  }
+ if(!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:(user|userdebug|eng)\/[a-zA-Z0-9_.-]+$/.test(fp))return notice('Please enter a complete, correctly formatted build fingerprint.','error');
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return notice('Select a build date.','error');
+ if(patch!=='-'&&!/^\d{4}-\d{2}-\d{2}$/.test(patch))return notice('Security patch must be YYYY-MM-DD.','error');
+ const epoch=Date.parse(day+'T00:00:00Z')/1000;
+ if(!Number.isInteger(epoch)||epoch<946684800||epoch>4102444800||dateFromEpoch(epoch)!==day)return notice('Date is outside the supported range or invalid.','error');
+ setBusy(true); notice('Applying…');try{await cmd(['set',fp,String(epoch),patch,$('partitions').checked?'1':'0',$('autofill').checked?'1':'0',...identityFields.map(id=>$(id).value.trim())]);dirty=false;const ok=await refresh(false);notice(ok?'Saved. Tap Reboot to reload build identity across Android.':'Changes saved, but state refresh failed. Reopen WebUI to verify.',ok?'':'error');await refreshSsaid();}catch(e){notice('Apply failed: '+e.message,'error');}finally{setBusy(false)}
+}
+async function reset(){if(!confirm('Restore the original properties now and disable overrides on the next reboot?'))return;setBusy(true);notice('Restoring…');try{await cmd(['disable']);const ok=await refresh(true);dirty=false;notice(ok?'Restored. Tap Reboot to reload original identity.':'Restoration requested, but state refresh failed. Reboot and verify.',ok?'':'error');}catch(e){notice('Restore failed: '+e.message,'error');}finally{setBusy(false)}}
+async function rebootDevice(){
+  const reminder=dirty?'Any unapplied edits will be lost. ':'';
+  if(!confirm(reminder+'Reboot Android now? The device will disconnect and reopen after startup.'))return;
+  setBusy(true);notice('Sending reboot request…');
+  try{await cmd(['reboot']);notice('Reboot requested.');}
+  catch(e){notice('If the device remains on, reboot failed: '+e.message,'error');}
+  finally{setBusy(false)}
+}
+$('ssaidStage').addEventListener('click',stageSsaid);
+$('ssaidRestore').addEventListener('click',restoreSsaid);
+$('ssaidCancel').addEventListener('click',cancelSsaid);
+$('ssaidSync').addEventListener('change',updateSsaidMode);
+$('keyboxFile').addEventListener('change',inspectKeybox);
+$('keyboxImport').addEventListener('click',()=>keyboxOperation('import'));
+$('keyboxSelect').addEventListener('click',()=>keyboxOperation('select'));
+$('keyboxList').addEventListener('click',async()=>{try{$('keyboxVaultStatus').textContent='Profiles:\n'+(await keyboxCmd(['list'])).trim();}catch(e){$('keyboxVaultStatus').textContent=e.message;}});
+$('keyboxDeploy').addEventListener('click',()=>keyboxOperation('deploy-omk'));
+$('keyboxRestore').addEventListener('click',()=>keyboxOperation('restore-omk'));
+$('keyboxRemove').addEventListener('click',()=>keyboxOperation('remove'));
+$('integrityCapture').addEventListener('click',()=>integrityOperation('capture'));
+$('integrityCompare').addEventListener('click',()=>integrityOperation('compare'));
+$('integrityRefresh').addEventListener('click',()=>integrityOperation('report'));
+$('apply').addEventListener('click',apply);
+$('reset').addEventListener('click',reset);
+$('reboot').addEventListener('click',rebootDevice);
+$('refresh').addEventListener('click',()=>refresh(false));
+$('loadCurrent').addEventListener('click',useActive);
+$('autofill').addEventListener('change',()=>{dirty=true;updateAuto();});
+$('fingerprint').addEventListener('input',()=>{dirty=true;if($('autofill').checked)updateAuto();});
+for(const id of [...identityFields,'date','patch','partitions']) $(id).addEventListener('input',()=>{dirty=true;if(id==='model'||id==='name')updateFingerprintGuide();});
+refresh(true); refreshSsaid(); refreshKeybox(); integrityOperation('report');
+</script>
+</body>
+</html>

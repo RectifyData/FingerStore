@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/KernelSU-Modules/tools/main/schemas/module.schema.json
+schemaVersion: 1
+id: build_fingerprint_date
+name: FingerStore
+summary: Edit Android build identity properties with a KernelSU WebUI, optional SSAID management and stability diagnostics.
+description: README.md
+license: CC0-1.0
+homepage: https://github.com/RectifyData/FingerStore
+support: https://github.com/RectifyData/FingerStore/issues
+tags: [system, customization, tools]
+metamodule: false
+authors:
+  - name: Jay Baumforster
+    url: https://github.com/RectifyData
+release:
+  assetPattern: "build_fingerprint_date-*.zip"

@@ -1,0 +1,7 @@
+id=build_fingerprint_date
+name=FingerStore
+version=1.4.2
+versionCode=142
+author=Jay Baumforster
+description=Build fingerprint and date editor with per-app SSAID staging, optional fingerprint-linked SSAID, private keybox profiles and opt-in external software-provider deployment, rollback, reboot, and read-only integrity stability diagnostics.
+updateJson=https://raw.githubusercontent.com/RectifyData/FingerStore/main/update.json

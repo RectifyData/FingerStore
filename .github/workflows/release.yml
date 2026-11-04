@@ -1,0 +1,92 @@
+name: Verify and publish for KernelSU Modules
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      module_zip: ${{ steps.package.outputs.module_zip }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+      - name: Install BusyBox before checking shell scripts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y busybox
+      - name: Validate module and scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build.py --check
+          for script in *.sh bin/*.sh; do sh -n "$script"; bash -n "$script"; busybox ash -n "$script"; done
+      - name: Run regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in tests/test_*.py; do python3 "$test"; done
+          for test in tests/test_*.cjs; do node "$test"; done
+      - name: Build deterministic module archives and check integrity
+        id: package
+        run: |
+          set -euo pipefail
+          python3 scripts/build.py
+          VERSION="$(sed -n 's/^version=//p' module.prop)"
+          echo "module_zip=dist/FingerStore-v${VERSION}-module.zip" >> "$GITHUB_OUTPUT"
+          python3 tests/test_release.py
+          (cd dist && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fingerstore-verified-build
+          path: dist/*
+          if-no-files-found: error
+      - name: KernelSU catalog precheck (no release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: KernelSU-Modules/tools/actions/module-release@e0ac1a6193e698beac3c2fc47dec88d180efca8a
+        with:
+          zip: ${{ steps.package.outputs.module_zip }}
+          manifest: module.yaml
+          dry-run: 'true'
+
+  publish:
+    name: Publish verified immutable prerelease
+    needs: validate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.1.8
+        with:
+          name: fingerstore-verified-build
+          path: dist
+      - name: Match tag to tested module version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version=//p' module.prop)"
+          test "$GITHUB_REF_NAME" = "v$VERSION" || { echo "Tag/version mismatch"; exit 1; }
+          (cd dist && sha256sum -c SHA256SUMS)
+      - name: KernelSU validated immutable prerelease
+        id: release
+        uses: KernelSU-Modules/tools/actions/module-release@e0ac1a6193e698beac3c2fc47dec88d180efca8a
+        with:
+          zip: ${{ needs.validate.outputs.module_zip }}
+          manifest: module.yaml
+          prerelease: 'true'
+          release-notes-file: CHANGELOG.md
+      - name: Report
+        env:
+          RELEASE_URL: ${{ steps.release.outputs.release-url }}
+          SHA256: ${{ steps.release.outputs.sha256 }}
+        run: |
+          echo "Published ${RELEASE_URL}"
+          echo "SHA256 ${SHA256}"
