@@ -17,8 +17,6 @@ w.ksu={moduleInfo:()=>JSON.stringify({moduleDir:'/data/adb/modules/build_fingerp
     else if(cmd.includes("'compare'")){out=baseline?'changed_field_count=0':'baseline_missing=yes';}
     else out='baseline_present='+(baseline?'yes':'no');
   } else if(cmd.includes('fpctl.sh')) out='enabled=0\nresetprop=available\n';
-  else if(cmd.includes('ssaidctl.sh'))out='ssaid_pending=0';
-  else if(cmd.includes('keyboxctl.sh'))out='software_provider=unavailable';
   Promise.resolve().then(()=>w[callback](0,out,''));
 }};
 vm.runInNewContext(code,w,{timeout:2000});

@@ -14,14 +14,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / 'dist'
 RUNTIME = (
-    'module.prop', 'customize.sh', 'post-fs-data.sh', 'service.sh',
+    'module.prop', 'customize.sh', 'service.sh',
     'boot-completed.sh', 'action.sh', 'skip_mount',
-    'bin/fpctl.sh', 'bin/integrityctl.sh', 'bin/keyboxctl.sh',
-    'bin/ssaidctl.sh', 'webroot/index.html', 'README.md',
+    'bin/fpctl.sh', 'bin/integrityctl.sh',
+    'webroot/index.html', 'webroot/catalog.js', 'README.md',
 )
 SOURCE_PREFIXES = ('bin/', 'webroot/', 'tests/', 'scripts/', '.github/workflows/', 'docs/')
 SOURCE_FILES = {
-    'module.prop', 'customize.sh', 'post-fs-data.sh', 'service.sh',
+    'module.prop', 'customize.sh', 'service.sh',
     'boot-completed.sh', 'action.sh', 'skip_mount', 'README.md',
     'CHANGELOG.md', 'SECURITY.md', 'LICENSE', 'module.yaml',
     'update.json', '.gitignore',
