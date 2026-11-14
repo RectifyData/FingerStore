@@ -1,70 +1,100 @@
 # FingerStore
 
-**FingerStore v1.4.3** is a KernelSU module for editing Android build fingerprints, build dates and identity properties through a mobile-first Material 3 WebUI.
+**FingerStore v1.4.4** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
 
-The module ID remains `build_fingerprint_date` to keep updates compatible with previous versions.
+## Core features
 
-## Features
+- Edit Android build fingerprint, build timestamp, reported security-patch property, brand, device, retail model, product name and manufacturer.
+- Choose **After reboot (recommended)** to stage changes for startup, or **At runtime (unstable)** to apply immediately with root `resetprop -n`. Running apps may retain cached identity, and competing modules can override runtime values.
+- Opt-in partition identity mirroring, fingerprint-to-identity autofill and a Restore action.
+- Exactly **100 synthetic demonstration device profiles** with Android version templates for 8–16. These are illustrations, not genuine or verified firmware fingerprints. Changing the version does not imply the device supports that Android release.
+- Mobile-first WebUI using Google Sans Flex and Material 3 styling, with optional Material Web controls and a native offline fallback. The WebUI is available in compatible module managers; stock Magisk does not provide KernelSU's WebUI bridge.
+- Local read-only property stability diagnostics.
 
-- Edit `ro.build.fingerprint`, `ro.build.date.utc`, the formatted build date, and the reported security patch *property*.
-- Manually set brand, device codename, product code, retail model and manufacturer, or opt in to conservative fingerprint-based autofill.
-- Mirror existing system, product, vendor, odm, system_ext and bootimage build properties when requested (off by default).
-- Choose how to apply a saved identity:
-  - **After reboot — recommended:** stage new properties for KernelSU startup. Do **not** change live properties until the next reboot.
-  - **At runtime — unstable:** write live properties immediately and persist the selection for future boots. Existing apps can cache the previous values, and ROM services or competing modules can override properties.
-- Browse **exactly 100 device demo entries** with an Android 8–16 version selector. Each entry has one baseline demo fingerprint and dynamically generated per-version examples.
-- Use Google Sans Flex and Material Web 3 where supported; a local Material 3-styled native fallback keeps the WebUI usable when the phone is offline.
-- Read-only local property stability diagnostics, restore original values and request a confirmed reboot.
+## Magisk support
 
-### Important: device catalog is demonstration data
+Install the **module ZIP** from [GitHub Releases](https://github.com/RectifyData/FingerStore/releases) through **Magisk → Modules → Install from storage**. Installation is visible in Magisk and does not use a silent setup. Reboot afterward.
 
-Every demo fingerprint uses explicit `demo_` device/product identifiers and a `DEMO...` build incremental. None of the example strings is an official or verified fingerprint from OEM firmware. Version selection **does not** establish that the device can run that Android release. For actual use, supply a verified `ro.build.fingerprint` and corresponding identity fields from the exact firmware build.
+Magisk executes the module's `system.prop` and `service.sh` integration and provides `resetprop` for live property application. In the Magisk module screen, the **Action** button prints the saved/active state and CLI usage.
 
-Google has never released a Pixel 5 XL. The catalog includes the actual Pixel 5 and Pixel 4 XL instead.
+For root-shell control (e.g. Termux with `su`):
 
-## Removed features
+```sh
+su -c 'sh /data/adb/modules/build_fingerprint_date/bin/fpctl.sh status'
+su -c 'sh /data/adb/modules/build_fingerprint_date/bin/fpctl.sh zygisk status'
+su -c 'sh /data/adb/modules/build_fingerprint_date/bin/fpctl.sh disable'
+```
 
-As of v1.4.3, **SSAID editing and the keybox loader are removed entirely from the installed code and WebUI.** The module no longer edits the Android SSAID database or installs external attestation-provider files.
+To configure a fingerprint without a WebUI, the root CLI accepts:
 
-If an older version changed app SSAIDs or an external keybox provider, **upgrading does not undo those earlier external modifications.** Restore them from a known-good backup or the previous release before upgrading if necessary. FingerStore will not silently rewrite unrelated Android settings to reverse old edits.
+```text
+fpctl.sh set <fingerprint> <UTC-epoch> <patch-or-dash> <mirror-0|1>   <autofill-0|1> <brand> <device> <model> <product> <manufacturer> <reboot|runtime>
+```
 
-## Accuracy and safety
+Existing 4-argument and 10-argument forms remain supported for backward compatibility and retain their historical immediate runtime behavior.
 
-This module **does not guarantee any Play Integrity verdict or hardware-backed attestation**. Security-patch property changes do not install security fixes. Only already-existing partition properties are mirrored. The WebUI never applies a demo automatically; it requires an explicit action, and warns again before applying a synthetic example.
+### Optional Zygisk: **only runtime fingerprint injection**
 
-Keep a backup, particularly when changing identity on a primary phone. Boot-stage mode is preferable to changing identity while applications are running. Actual boot behavior varies by ROM and KernelSU environment and requires hardware testing to verify.
+Zygisk is **OFF by default**. FingerStore works normally under Magisk or KernelSU without it. The release module ZIP contains four native ABI libraries, but they do not inject anything unless you explicitly enable the FingerStore toggle.
 
-## Install
+To use it:
 
-1. Get the **FingerStore v1.4.3 module ZIP** from [GitHub Releases](https://github.com/RectifyData/FingerStore/releases).
-2. In KernelSU Manager, choose **Modules → Install from storage** and select the module ZIP, not the source ZIP. Do not flash through recovery.
-3. Reboot, open the FingerStore WebUI, and choose a verified fingerprint or explore the demo catalog.
-4. Choose **After reboot (recommended)** or **At runtime (unstable)**, then tap **Apply changes**. Reboots always need your confirmation.
+1. In Magisk settings, turn on **Zygisk**, then reboot so Magisk loads Zygisk support.
+2. Save a fingerprint in FingerStore using **At runtime (unstable)** mode. Zygisk does nothing in **After reboot** mode.
+3. Enable **Optional Zygisk** in a compatible WebUI or run:
 
-Saved choices survive ordinary restarts and in-place upgrades until you edit or restore them. **Restore** reverts captured build properties where available and disables future overrides.
+   ```sh
+   su -c 'sh /data/adb/modules/build_fingerprint_date/bin/fpctl.sh zygisk enable'
+   ```
 
-## Build and test
+4. Completely restart the target app (force stop and reopen) so it starts a new Zygisk-managed process.
 
-The build is reproducible and requires Python 3, Node.js and standard shell tools:
+Disable it at any time:
+
+```sh
+su -c 'sh /data/adb/modules/build_fingerprint_date/bin/fpctl.sh zygisk disable'
+```
+
+The Zygisk bridge changes **only the process-local Java `android.os.Build.FINGERPRINT` field in newly launched app processes**. It does not modify `system_server`, hook native property APIs, or change other build fields. It does not modify existing app processes. Zygisk is **not** a substitute for the core Magisk/KSU systemless property editor, and it does not guarantee Play Integrity or attestation results.
+
+This is an experimental native feature without physical-device validation. Leave it disabled if you do not specifically need runtime Java fingerprint injection.
+
+## Upgrade safety
+
+Previously included SSAID editing and keybox-loader features were removed in v1.4.3. Upgrading does not reverse external SSAID or attestation-provider changes made with older versions; restore them from appropriate backups if necessary.
+
+No real keyboxes, passwords, user-specific identifiers, `config.conf`, `original.props`, `zygisk.conf` or diagnostics data are published in release ZIPs. The Zygisk bridge does not install hooks in target apps and is automatically unloaded after specialization.
+
+## Build / test / release
+
+Source checks work on any host with Python 3, Node.js and shell tools:
 
 ```sh
 python3 scripts/build.py --check
-for t in tests/test_*.py; do python3 "$t"; done
-for t in tests/test_*.cjs; do node "$t"; done
-python3 scripts/build.py
+for test in tests/test_*.py; do python3 "$test"; done
+for test in tests/test_*.cjs; do node "$test"; done
+```
+
+To compile the optional Zygisk libraries, use **Android NDK r27+**:
+
+```sh
+cd zygisk
+"$ANDROID_NDK_HOME/ndk-build"
+cd ..
+python3 scripts/build.py --with-zygisk
 python3 tests/test_release.py
 (cd dist && sha256sum -c SHA256SUMS)
 ```
 
-The installable archive is `dist/FingerStore-v1.4.3-module.zip`, the complete source archive is `dist/FingerStore-v1.4.3-source.zip`, and checksums are in `dist/SHA256SUMS`.
+A source-only module ZIP without native binaries can also be built with `python3 scripts/build.py`, but it cannot enable the optional Zygisk feature. GitHub Actions always compiles, validates and packages all four ABIs for official release assets.
 
-GitHub Actions validates code and build archives for each pull request. A successful push to `main` can publish the new version as a verified GitHub prerelease, with an installable asset named `build_fingerprint_date-143-1.4.3.zip`.
+All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.4 installable asset name is `build_fingerprint_date-144-1.4.4.zip`; the release also provides full source and SHA256 checksums.
 
-## Documentation
+## References
 
 - [Technical reference](docs/TECHNICAL.md)
-- [Publishing](docs/PUBLISHING.md)
+- [Release and publishing instructions](docs/PUBLISHING.md)
+- [Optional Zygisk module source](zygisk/README.md)
 - [Changelog](CHANGELOG.md)
-- [Security](SECURITY.md)
-- [KernelSU modules](https://kernelsu.org/guide/module.html)
-- [Material Web](https://github.com/material-components/material-web)
+- [Magisk](https://github.com/topjohnwu/Magisk)
+- [Official Zygisk module sample](https://github.com/topjohnwu/zygisk-module-sample)
