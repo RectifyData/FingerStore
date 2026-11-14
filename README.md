@@ -1,39 +1,53 @@
 # FingerStore
 
-**A KernelSU build identity editor with a local WebUI, persistent fingerprints, SSAID controls, and diagnostic utilities.**
+**FingerStore v1.4.3** is a KernelSU module for editing Android build fingerprints, build dates and identity properties through a mobile-first Material 3 WebUI.
 
-FingerStore is the publishing name for the existing **Build Identity** module. The internal module ID remains `build_fingerprint_date`, so installing updates over v1.4.x preserves saved settings and rollback data. The source is provided so the module can be audited before installation.
+The module ID remains `build_fingerprint_date` to keep updates compatible with previous versions.
 
 ## Features
 
-- Editable Android build fingerprint, date, patch *property*, brand, device, model, product and manufacturer.
-- Opt-in fingerprint-to-identity autofill; partition property mirroring remains off unless enabled.
-- Saved values persist across reboots and in-place upgrades; Restore and Reboot controls in a mobile-first WebUI.
-- Experimental opt-in **per-app SSAID** edits staged for early boot, with original backups and conflict detection.
-- Local keybox XML profiles and optional deployment to a **separately installed** software KeyMint provider; no provider modification unless explicitly requested.
-- Read-only build-property stability comparisons for investigating changing Play Integrity results.
+- Edit `ro.build.fingerprint`, `ro.build.date.utc`, the formatted build date, and the reported security patch *property*.
+- Manually set brand, device codename, product code, retail model and manufacturer, or opt in to conservative fingerprint-based autofill.
+- Mirror existing system, product, vendor, odm, system_ext and bootimage build properties when requested (off by default).
+- Choose how to apply a saved identity:
+  - **After reboot — recommended:** stage new properties for KernelSU startup. Do **not** change live properties until the next reboot.
+  - **At runtime — unstable:** write live properties immediately and persist the selection for future boots. Existing apps can cache the previous values, and ROM services or competing modules can override properties.
+- Browse **exactly 100 device demo entries** with an Android 8–16 version selector. Each entry has one baseline demo fingerprint and dynamically generated per-version examples.
+- Use Google Sans Flex and Material Web 3 where supported; a local Material 3-styled native fallback keeps the WebUI usable when the phone is offline.
+- Read-only local property stability diagnostics, restore original values and request a confirmed reboot.
 
-### Security and accuracy
+### Important: device catalog is demonstration data
 
-**This does not guarantee any Play Integrity level, hardware-backed attestation, or secure device identity.** Google determines verdicts remotely. Changing a reported patch property does not install security patches; changing the system fingerprint does not change physical device hardware. The optional keybox manager does not convert software attestations into hardware-rooted attestations.
+Every demo fingerprint uses explicit `demo_` device/product identifiers and a `DEMO...` build incremental. None of the example strings is an official or verified fingerprint from OEM firmware. Version selection **does not** establish that the device can run that Android release. For actual use, supply a verified `ro.build.fingerprint` and corresponding identity fields from the exact firmware build.
 
-Per-app SSAID modifications **change Android's SettingsProvider user data**, unlike systemless build-property overrides; restoring the app's original ID before uninstall is important. Device compatibility, early boot database timing and attestation-provider behavior have not been validated on all supported Android ROMs. Always keep a known-working module ZIP and device backup, especially on a primary phone.
+Google has never released a Pixel 5 XL. The catalog includes the actual Pixel 5 and Pixel 4 XL instead.
 
-**Never publish real keybox XML files, private keys, certificate bundles, `ssaid-data`, `config.conf`, or device-derived identifiers.** These are intentionally excluded from release ZIPs and ignored by Git.
+## Removed features
 
-## Installation
+As of v1.4.3, **SSAID editing and the keybox loader are removed entirely from the installed code and WebUI.** The module no longer edits the Android SSAID database or installs external attestation-provider files.
 
-1. Obtain `FingerStore-v1.4.2-module.zip` from [Releases](https://github.com/WatchFact/fingerstore/releases) **once the repository and release are published**.
-2. In KernelSU Manager, choose **Modules → Install from storage** and select the ZIP (not the source ZIP).
-3. Reboot, open the **FingerStore** WebUI, and edit your selected fingerprint and other settings.
-4. Use **Apply** and then **Reboot**. FingerStore never reboots automatically.
+If an older version changed app SSAIDs or an external keybox provider, **upgrading does not undo those earlier external modifications.** Restore them from a known-good backup or the previous release before upgrading if necessary. FingerStore will not silently rewrite unrelated Android settings to reverse old edits.
 
-Do **not** flash this ZIP through a custom recovery. Disabling/removing the module returns systemless build overrides to ROM defaults after reboot, but it does not automatically undo SSAID database edits or external provider deployments.
+## Accuracy and safety
 
-## Build, check, and release
+This module **does not guarantee any Play Integrity verdict or hardware-backed attestation**. Security-patch property changes do not install security fixes. Only already-existing partition properties are mirrored. The WebUI never applies a demo automatically; it requires an explicit action, and warns again before applying a synthetic example.
+
+Keep a backup, particularly when changing identity on a primary phone. Boot-stage mode is preferable to changing identity while applications are running. Actual boot behavior varies by ROM and KernelSU environment and requires hardware testing to verify.
+
+## Install
+
+1. Get the **FingerStore v1.4.3 module ZIP** from [GitHub Releases](https://github.com/RectifyData/FingerStore/releases).
+2. In KernelSU Manager, choose **Modules → Install from storage** and select the module ZIP, not the source ZIP. Do not flash through recovery.
+3. Reboot, open the FingerStore WebUI, and choose a verified fingerprint or explore the demo catalog.
+4. Choose **After reboot (recommended)** or **At runtime (unstable)**, then tap **Apply changes**. Reboots always need your confirmation.
+
+Saved choices survive ordinary restarts and in-place upgrades until you edit or restore them. **Restore** reverts captured build properties where available and disables future overrides.
+
+## Build and test
+
+The build is reproducible and requires Python 3, Node.js and standard shell tools:
 
 ```sh
-# Requires Python 3, Node.js and standard shell utilities. No pip dependencies.
 python3 scripts/build.py --check
 for t in tests/test_*.py; do python3 "$t"; done
 for t in tests/test_*.cjs; do node "$t"; done
@@ -42,22 +56,15 @@ python3 tests/test_release.py
 (cd dist && sha256sum -c SHA256SUMS)
 ```
 
-`dist/FingerStore-v1.4.2-module.zip` is the installable module; the separate `-source.zip` contains source, CI and tests. Checksums are in `dist/SHA256SUMS`. Packaging is reproducible (stable entry order, timestamps and file modes).
+The installable archive is `dist/FingerStore-v1.4.3-module.zip`, the complete source archive is `dist/FingerStore-v1.4.3-source.zip`, and checksums are in `dist/SHA256SUMS`.
 
-GitHub Actions validates every PR and commits on `main`; pushing a `v1.4.2` tag runs KernelSU's official release validator and creates an **immutable GitHub prerelease**, with the installable ZIP normalized to `build_fingerprint_date-142-1.4.2.zip`. Each published version has an immutable tag by convention: bump both `version` and `versionCode` before any new release. The action will not overwrite an existing release. The local `update.json` points to the manually packaged module ZIP and is usable once it is separately attached to a published release; when catalog-listed, the official KernelSU update endpoint can replace it. See [Publishing instructions](docs/PUBLISHING.md).
-
-To submit for the KernelSU Modules catalog, maintain `module.yaml`, enable release immutability on GitHub, and follow the official [KernelSU Modules release criteria](https://developers.kernelsu.org/docs/releasing). A GitHub release is not the same thing as catalog approval.
+GitHub Actions validates code and build archives for each pull request. A successful push to `main` can publish the new version as a verified GitHub prerelease, with an installable asset named `build_fingerprint_date-143-1.4.3.zip`.
 
 ## Documentation
 
-- [Full technical reference and recovery instructions](docs/TECHNICAL.md)
-- [GitHub publishing and versioning](docs/PUBLISHING.md)
-- [Security and responsible reporting](SECURITY.md)
-- [Release history](CHANGELOG.md)
-
-## Platform references
-
-- [KernelSU module format](https://kernelsu.org/guide/module.html)
-- [KernelSU WebUI](https://kernelsu.org/guide/module-webui.html)
-- [Android `Build` API](https://developer.android.com/reference/android/os/Build)
-- [Google Play Integrity verdicts](https://developer.android.com/google/play/integrity/verdicts)
+- [Technical reference](docs/TECHNICAL.md)
+- [Publishing](docs/PUBLISHING.md)
+- [Changelog](CHANGELOG.md)
+- [Security](SECURITY.md)
+- [KernelSU modules](https://kernelsu.org/guide/module.html)
+- [Material Web](https://github.com/material-components/material-web)
