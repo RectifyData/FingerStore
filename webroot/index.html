@@ -137,7 +137,7 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
   <p class="hint">When Play Integrity passes, capture a baseline. If labels disappear later, compare the live build properties and local software-provider file state. This cannot read or change Google's server-side verdict, prove a keybox valid, or reveal a private key.</p>
   <div class="sub-actions"><button class="neutral" type="button" id="integrityCapture">Capture passing baseline</button><button class="primary" type="button" id="integrityCompare">Compare after failure</button><button class="neutral" type="button" id="integrityRefresh">Refresh diagnostics</button></div>
   <div class="notice code-note" id="integrityStatus" role="status" aria-live="polite">Checking local integrity signals…</div>
-  <p class="footnote">A matching provider keybox file does NOT confirm it is loaded by KeyMint or accepted by Google. On Android 13+, Strong Integrity also requires device integrity and recent security updates to real partitions. This checker never reads keybox XML, app IDs, or credentials.</p>
+  <p class="footnote">Local property reports cannot validate device attestation. On Android 13+, Strong Integrity also requires device integrity and recent security updates to real partitions. This checker never reads keybox XML, app IDs, or credentials.</p>
 </section>
 </main>
 <div class="actions" role="group" aria-label="Module actions"><button class="neutral" id="reset" type="button">Restore</button><button class="primary" id="apply" type="button">Apply changes</button><button class="neutral reboot" id="reboot" type="button" title="Reboot Android to reload properties" aria-label="Reboot Android">↻ Reboot</button></div>
@@ -145,7 +145,7 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
-const elements = ['apply','reset','refresh','loadCurrent','reboot','ssaidStage','ssaidRestore','ssaidCancel','keyboxImport','keyboxSelect','keyboxList','keyboxDeploy','keyboxRestore','keyboxRemove','integrityCapture','integrityCompare','integrityRefresh'];
+const elements=['apply','reset','refresh','loadCurrent','reboot','catalogLoad','catalogSearch','catalogDevice','catalogVersion','applyMode','integrityCapture','integrityCompare','integrityRefresh'];
 const identityFields=['brand','device','model','name','manufacturer'];
 let autoModel=''; let lastAutofillFingerprint=null; let dirty=false;
 let active = {}, cfg = {}, moduleDir = '/data/adb/modules/build_fingerprint_date';
@@ -165,129 +165,6 @@ function cmd(args) {
     catch(e){delete window[name];reject(e)}
   });
 }
-function ssaidCmd(args){
-  return new Promise((resolve,reject)=>{
-    if(!hasBridge)return reject(new Error('Open this page in KernelSU Manager.'));
-    const name='__fpSsaidCb'+(++sequence);
-    window[name]=(errno,stdout,stderr)=>{delete window[name];if(errno!==0)reject(new Error(String(stderr||stdout||('SSAID command failed: '+errno)).trim()));else resolve(String(stdout||''));};
-    try{window.ksu.exec('sh '+shellQuote(moduleDir+'/bin/ssaidctl.sh')+' '+args.map(shellQuote).join(' '),name)}catch(e){delete window[name];reject(e)}
-  });
-}
-function updateSsaidMode(){
-  $('ssaidValue').disabled=$('ssaidSync').checked;
-  $('ssaidValue').placeholder=$('ssaidSync').checked?'Generated from saved fingerprint':'0123456789abcdef';
-}
-async function refreshSsaid(){
-  try {
-    const state=parse(await ssaidCmd(['status']));
-    const pending=state.ssaid_pending==='1';
-    const parts=[
-      'SSAID database: '+(state.ssaid_source==='present'?'Detected':'Unavailable'),
-      'Pending reboot: '+(pending?'YES':'No'),
-    ];
-    if(pending)parts.push('Pending app: '+(state.ssaid_pending_package||'Unknown'),'Pending ID: '+(state.ssaid_pending_value||'Unknown'));
-    if(state.ssaid_last_result)parts.push('Last boot action: '+state.ssaid_last_result);
-    if(state.ssaid_legacy_id)parts.push('System legacy Android ID (NOT app SSAID): '+state.ssaid_legacy_id);
-    $('ssaidStatus').textContent=parts.join('\n');
-    if(!ssaidInitialized){
-      if(state.ssaid_profile_package)$('ssaidPackage').value=state.ssaid_profile_package;
-      if(state.ssaid_profile_mode==='manual'&&/^[a-f0-9]{16}$/i.test(state.ssaid_profile_manual||''))$('ssaidValue').value=state.ssaid_profile_manual;
-      $('ssaidSync').checked=state.ssaid_profile_mode==='sync';
-      updateSsaidMode();ssaidInitialized=true;
-    }
-  } catch(e){$('ssaidStatus').textContent='SSAID status unavailable: '+e.message;}
-}
-async function stageSsaid(){
-  const pkg=$('ssaidPackage').value.trim();
-  if(!/^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/.test(pkg))return $('ssaidStatus').textContent='Enter a valid installed package name.';
-  const synced=$('ssaidSync').checked;
-  const id=$('ssaidValue').value.trim().toLowerCase();
-  if(!synced&&!/^[0-9a-f]{16}$/.test(id))return $('ssaidStatus').textContent='SSAID must be 16 hexadecimal characters.';
-  if(synced&&dirty)return $('ssaidStatus').textContent='Apply your pending build fingerprint edits first, then stage the linked SSAID.';
-  if(!confirm('Stage a change for '+pkg+'? It takes effect only after reboot and may sign you out of that app.'))return;
-  setBusy(true);$('ssaidStatus').textContent='Validating and staging without touching the live database…';
-  try{const result=await ssaidCmd(['stage',pkg,synced?'sync':'manual',synced?'-':id]);
-    $('ssaidStatus').textContent='Staged successfully. Reboot to apply.\n'+result.trim();await refreshSsaid();}
-  catch(e){$('ssaidStatus').textContent='SSAID staging failed: '+e.message;}
-  finally{setBusy(false)}
-}
-async function restoreSsaid(){
-  const pkg=$('ssaidPackage').value.trim();
-  if(!confirm('Stage restoration of the original ID for '+pkg+'? Reboot required.'))return;
-  setBusy(true);
-  try{const result=await ssaidCmd(['restore',pkg]);$('ssaidStatus').textContent=result;await refreshSsaid();}
-  catch(e){$('ssaidStatus').textContent='Restore failed: '+e.message;}
-  finally{setBusy(false)}
-}
-async function cancelSsaid(){
-  if(!confirm('Cancel all un-applied SSAID changes? Already-applied changes remain.'))return;
-  setBusy(true);
-  try{await ssaidCmd(['clear-pending']);await refreshSsaid();}catch(e){$('ssaidStatus').textContent='Cancel failed: '+e.message;}finally{setBusy(false)}
-}
-// A local-only structural parser, not an attestation injection path.
-async function inspectKeybox(e){
- const target=$('keyboxStatus');const file=e.target.files&&e.target.files[0];
- if(!file){target.textContent='No keybox selected.';return;}
- if(file.size>512*1024){target.textContent='Rejected: keybox must be smaller than 512 KiB.';return;}
- try{
-  const content=await file.text();
-  if(/<!DOCTYPE|<!ENTITY/i.test(content))throw Error('DTD/entity declarations are not permitted.');
-  const doc=new DOMParser().parseFromString(content,'application/xml');
-  if(doc.querySelector('parsererror'))throw Error('Malformed XML.');
-  const root=doc.documentElement;
-  if(root.tagName.toLowerCase()!=='androidattestation')throw Error('Not an AndroidAttestation keybox.');
-  const keys=Array.from(root.getElementsByTagName('Key'));
-  if(!keys.length||keys.length>8)throw Error('Expected 1–8 Key elements.');
-  const algorithms=[];let certs=0;let privateKeys=0;
-  for(const key of keys){
-    const algorithm=key.getAttribute('algorithm')||'unspecified';
-    if(!/^[a-z0-9_-]{1,24}$/i.test(algorithm))throw Error('Invalid key algorithm.');
-    algorithms.push(algorithm);
-    const pk=key.getElementsByTagName('PrivateKey');
-    const cs=key.getElementsByTagName('Certificate');
-    if(pk.length!==1||cs.length<1)throw Error('Each Key needs one PrivateKey and certificate(s).');
-    for(const node of [...Array.from(pk),...Array.from(cs)]){
-      const txt=(node.textContent||'').trim();
-      const label=node.tagName==='PrivateKey'?'PRIVATE KEY':'CERTIFICATE';
-      const pattern=node.tagName==='PrivateKey'?/^-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]+-----END (?:RSA |EC )?PRIVATE KEY-----$/:/^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----$/;
-      // Envelope check for PKCS#8, RSA PKCS#1 or EC SEC1; never transmit private material.
-      if(!pattern.test(txt))throw Error('Invalid '+node.tagName+' PEM envelope.');
-    }
-    certs+=cs.length;privateKeys+=pk.length;
-  }
-  target.textContent='Parsed locally: '+keys.length+' key(s) ('+algorithms.join(', ')+'), '+certs+' certificate(s), '+privateKeys+' private key envelope(s).\nThis is STRUCTURE validation only: certificate chains, private-key correspondence, revocation and hardware provenance are NOT verified. The file has NOT been installed.';
- }catch(ex){target.textContent='Rejected: '+ex.message;}
- e.target.value='';
-}
-function keyboxCmd(args){
- return new Promise((resolve,reject)=>{
-  if(!hasBridge)return reject(new Error('Open this page inside KernelSU Manager.'));
-  const name='__fpKeyboxCb'+(++sequence);
-  window[name]=(errno,stdout,stderr)=>{delete window[name];if(errno!==0)reject(new Error(String(stderr||stdout||('Keybox operation failed: '+errno)).trim()));else resolve(String(stdout||''));};
-  try{window.ksu.exec('sh '+shellQuote(moduleDir+'/bin/keyboxctl.sh')+' '+args.map(shellQuote).join(' '),name)}catch(e){delete window[name];reject(e)}
- });
-}
-async function refreshKeybox(){
- try{$('keyboxVaultStatus').textContent=(await keyboxCmd(['status'])).trim();}
- catch(e){$('keyboxVaultStatus').textContent='Keybox vault status unavailable: '+e.message;}
-}
-async function keyboxOperation(op){
- const profile=$('keyboxAlias').value.trim();const path=$('keyboxPath').value.trim();
- if(['import','select','remove'].includes(op) && !/^[A-Za-z0-9_][A-Za-z0-9_-]{0,39}$/.test(profile)){
-  $('keyboxVaultStatus').textContent='Invalid profile name.';return;
- }
- if(op==='import'&&!/^\/[\x20-\x7e]{1,350}$/.test(path)){
-  $('keyboxVaultStatus').textContent='Enter a root-readable absolute XML path.';return;
- }
- if(op==='deploy-omk'&&!confirm('Replace the keybox of the separate Oh My Keymint SOFTWARE provider? This could affect applications, passkeys or logins. The original provider keybox is backed up. Reboot to let the provider reload its new file; this does not prove attestation trust.'))return;
- if(op==='restore-omk'&&!confirm('Restore the ORIGINAL provider keybox from the first backup?'))return;
- if(op==='remove'&&!confirm('Delete the unused private profile '+profile+'?'))return;
- const params=op==='import'?[op,profile,path]:['select','remove'].includes(op)?[op,profile]:[op];
- setBusy(true);
- try{$('keyboxVaultStatus').textContent=(await keyboxCmd(params)).trim()+'\n'+(await keyboxCmd(['status'])).trim();}
- catch(e){$('keyboxVaultStatus').textContent='Operation failed safely: '+e.message;}
- finally{setBusy(false);}
-}
 function integrityCmd(args){
   return new Promise((resolve,reject)=>{
     if(!hasBridge)return reject(new Error('Open this page through KernelSU Manager.'));
@@ -303,7 +180,33 @@ async function integrityOperation(op){
   catch(e){$('integrityStatus').textContent='Diagnostics unavailable: '+e.message;}
   finally{setBusy(false);}
 }
-let ssaidInitialized=false;
+
+const demoCatalog=Array.isArray(window.FINGERSTORE_CATALOG)?window.FINGERSTORE_CATALOG:[];
+const demoYears={8:'2017-12-01',9:'2018-12-01',10:'2019-12-01',11:'2020-12-01',12:'2021-12-01',13:'2022-12-01',14:'2023-12-01',15:'2024-12-01',16:'2025-12-01'};
+function currentDemo(){return demoCatalog.find(d=>d.id===$('catalogDevice').value);}
+function previewCatalog(){const d=currentDemo(),v=Number($('catalogVersion').value)||14;$('catalogPreview').textContent=d&&typeof window.FINGERSTORE_DEMO_FP==='function'?d.model+' · Android '+v+' · SYNTHETIC DEMO\n'+window.FINGERSTORE_DEMO_FP(d,v):'No matching device example.';}
+function filterCatalog(){
+ const search=($('catalogSearch').value||'').trim().toLowerCase(),old=$('catalogDevice').value;
+ const filtered=demoCatalog.filter(d=>(d.brand+' '+d.model).toLowerCase().includes(search));
+ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ $('catalogDevice').innerHTML=filtered.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.model)+'</option>').join('');
+ $('catalogDevice').value=filtered.some(d=>d.id===old)?old:(filtered[0]?filtered[0].id:'');
+ $('catalogCount').textContent=demoCatalog.length+' device examples';previewCatalog();
+}
+function loadCatalogExample(){
+ const d=currentDemo(),v=Number($('catalogVersion').value)||14;
+ if(!d||typeof window.FINGERSTORE_DEMO_FP!=='function')return notice('Catalog unavailable.','error');
+ $('fingerprint').value=window.FINGERSTORE_DEMO_FP(d,v);$('autofill').checked=false;
+ for(const f of identityFields)$(f).value=f==='name'?d.product:f==='device'?d.device:f==='model'?d.model:d.brand;
+ $('date').value=demoYears[v]||'2023-12-01';$('patch').value='';updateAuto();dirty=true;
+ notice('Synthetic sample loaded. Use verified device firmware values for real use.','error');
+}
+function updateApplyMode(){
+ const live=$('applyMode').value==='runtime';
+ $('applyModeWarning').textContent=live?'UNSTABLE: runtime changes can be overwritten and apps can retain cached values. Settings still persist after reboot.':'Recommended: stage selection now and apply only after Android reboots.';
+ $('applyModeWarning').classList.toggle('error',live);
+}
+
 function parse(s){const out={}; for(const line of s.split(/\r?\n/)){const i=line.indexOf('=');if(i>0)out[line.slice(0,i)]=line.slice(i+1);}return out;}
 function setBusy(isBusy){elements.forEach(id=>$(id).disabled=isBusy);}
 function dateFromEpoch(secs){const n=Number(secs);if(!Number.isFinite(n)||n<946684800||n>4102444800)return '';return new Date(n*1000).toISOString().slice(0,10)}
@@ -340,7 +243,7 @@ function checkActiveProperties(state){
     for(const key of ['brand','device','name'])if(state[key]&&state[key]!==fp[key])inconsistencies.push(key==='name'?'product code':key);
     if(fp.model && state.model && state.model!==fp.model)inconsistencies.push('model');
   }
-  if(mismatches.length){el.textContent='Saved and active properties differ: '+mismatches.join(', ')+'. Reboot and refresh to confirm; another module may be overriding these values.';el.classList.add('error');}
+  if(mismatches.length){el.textContent=(state.apply_mode==='reboot'?'Awaiting reboot, or saved properties were overridden: ':'Saved and active properties differ: ')+mismatches.join(', ')+'. Reboot and refresh to confirm; another module may be overriding these values.';el.classList.add('error');}
   else {el.textContent='Saved values match active Android properties ('+Object.keys(expected).length+' checked). This verifies local property consistency, NOT Play Integrity.';el.classList.add('success');}
   if(inconsistencies.length){el.textContent+=' Fingerprint identity differs from selected '+inconsistencies.join(', ')+'.';el.classList.add('error');}
 }
@@ -385,6 +288,7 @@ async function refresh(loadInputs=true){setBusy(true);notice('Reading properties
    $('date').value=dateFromEpoch(enabled?cfg.epoch:cfg.current_epoch);
    $('patch').value=(enabled&&cfg.patch!=='-')?cfg.patch:'';
    $('partitions').checked=cfg.partitions==='1';$('autofill').checked=cfg.autofill==='1';
+    $('applyMode').value=enabled?(cfg.apply_mode||'runtime'):'reboot';updateApplyMode();
    for(const id of identityFields) $(id).value=enabled?(cfg[id]||''):(cfg['current_'+id]||'');
    updateAuto(true);updateFingerprintGuide();dirty=false;
   }
@@ -392,19 +296,20 @@ async function refresh(loadInputs=true){setBusy(true);notice('Reading properties
  return true;
 }catch(e){notice('Error: '+e.message,'error');$('statusText').textContent='Unable to query properties';return false;}finally{setBusy(false)}}
 async function apply(){
-  if($('autofill').checked)updateAuto();
-  const fp=$('fingerprint').value.trim(); const day=$('date').value;const patch=$('patch').value.trim()||'-';
-  for(const id of identityFields){
-    const val=$(id).value.trim();
-    if(val.length>90 || (val && !/^[A-Za-z0-9_][A-Za-z0-9_. +()\-]*$/.test(val)))
-      return notice('Invalid '+id+': use letters, numbers, spaces, dots, underscores, hyphens or parentheses.','error');
-  }
- if(!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:(user|userdebug|eng)\/[a-zA-Z0-9_.-]+$/.test(fp))return notice('Please enter a complete, correctly formatted build fingerprint.','error');
- if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return notice('Select a build date.','error');
- if(patch!=='-'&&!/^\d{4}-\d{2}-\d{2}$/.test(patch))return notice('Security patch must be YYYY-MM-DD.','error');
+ if($('autofill').checked)updateAuto();
+ const fp=$('fingerprint').value.trim(),day=$('date').value,patch=$('patch').value.trim()||'-';
+ for(const f of identityFields){const v=$(f).value.trim();if(v.length>90||(v&&!/^[A-Za-z0-9_][A-Za-z0-9_. +()\-]*$/.test(v)))return notice('Invalid identity field '+f,'error');}
+ if(!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:(user|userdebug|eng)\/[a-zA-Z0-9_.-]+$/.test(fp))return notice('Fingerprint format invalid.','error');
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||patch!=='-'&&!/^\d{4}-\d{2}-\d{2}$/.test(patch))return notice('Invalid date or patch.','error');
  const epoch=Date.parse(day+'T00:00:00Z')/1000;
- if(!Number.isInteger(epoch)||epoch<946684800||epoch>4102444800||dateFromEpoch(epoch)!==day)return notice('Date is outside the supported range or invalid.','error');
- setBusy(true); notice('Applying…');try{await cmd(['set',fp,String(epoch),patch,$('partitions').checked?'1':'0',$('autofill').checked?'1':'0',...identityFields.map(id=>$(id).value.trim())]);dirty=false;const ok=await refresh(false);notice(ok?'Saved. Tap Reboot to reload build identity across Android.':'Changes saved, but state refresh failed. Reopen WebUI to verify.',ok?'':'error');await refreshSsaid();}catch(e){notice('Apply failed: '+e.message,'error');}finally{setBusy(false)}
+ if(!Number.isInteger(epoch)||epoch<946684800||epoch>4102444800||dateFromEpoch(epoch)!==day)return notice('Unsupported date.','error');
+ if(fp.includes('/demo_')&&!confirm('This is SYNTHETIC DEMO data, not a verified firmware fingerprint. Apply anyway?'))return;
+ const mode=$('applyMode').value||'runtime';setBusy(true);notice(mode==='reboot'?'Staging for reboot…':'Applying runtime changes (unstable)…');
+ try{
+  await cmd(['set',fp,String(epoch),patch,$('partitions').checked?'1':'0',$('autofill').checked?'1':'0',...identityFields.map(f=>$(f).value.trim()),mode]);
+  dirty=false;const ok=await refresh(false);
+  notice(ok?(mode==='reboot'?'Saved for next reboot. Current Android properties are unchanged.':'Applied at runtime (UNSTABLE). Apps may need a restart or reboot.'):'Saved, but refresh failed. Reopen the UI.',ok?'':'error');
+ }catch(e){notice('Apply failed: '+e.message,'error');}finally{setBusy(false)}
 }
 async function reset(){if(!confirm('Restore the original properties now and disable overrides on the next reboot?'))return;setBusy(true);notice('Restoring…');try{await cmd(['disable']);const ok=await refresh(true);dirty=false;notice(ok?'Restored. Tap Reboot to reload original identity.':'Restoration requested, but state refresh failed. Reboot and verify.',ok?'':'error');}catch(e){notice('Restore failed: '+e.message,'error');}finally{setBusy(false)}}
 async function rebootDevice(){
@@ -415,17 +320,11 @@ async function rebootDevice(){
   catch(e){notice('If the device remains on, reboot failed: '+e.message,'error');}
   finally{setBusy(false)}
 }
-$('ssaidStage').addEventListener('click',stageSsaid);
-$('ssaidRestore').addEventListener('click',restoreSsaid);
-$('ssaidCancel').addEventListener('click',cancelSsaid);
-$('ssaidSync').addEventListener('change',updateSsaidMode);
-$('keyboxFile').addEventListener('change',inspectKeybox);
-$('keyboxImport').addEventListener('click',()=>keyboxOperation('import'));
-$('keyboxSelect').addEventListener('click',()=>keyboxOperation('select'));
-$('keyboxList').addEventListener('click',async()=>{try{$('keyboxVaultStatus').textContent='Profiles:\n'+(await keyboxCmd(['list'])).trim();}catch(e){$('keyboxVaultStatus').textContent=e.message;}});
-$('keyboxDeploy').addEventListener('click',()=>keyboxOperation('deploy-omk'));
-$('keyboxRestore').addEventListener('click',()=>keyboxOperation('restore-omk'));
-$('keyboxRemove').addEventListener('click',()=>keyboxOperation('remove'));
+$('catalogSearch').addEventListener('input',filterCatalog);
+$('catalogDevice').addEventListener('change',previewCatalog);
+$('catalogVersion').addEventListener('change',previewCatalog);
+$('catalogLoad').addEventListener('click',loadCatalogExample);
+$('applyMode').addEventListener('change',()=>{dirty=true;updateApplyMode();});
 $('integrityCapture').addEventListener('click',()=>integrityOperation('capture'));
 $('integrityCompare').addEventListener('click',()=>integrityOperation('compare'));
 $('integrityRefresh').addEventListener('click',()=>integrityOperation('report'));
@@ -437,7 +336,7 @@ $('loadCurrent').addEventListener('click',useActive);
 $('autofill').addEventListener('change',()=>{dirty=true;updateAuto();});
 $('fingerprint').addEventListener('input',()=>{dirty=true;if($('autofill').checked)updateAuto();});
 for(const id of [...identityFields,'date','patch','partitions']) $(id).addEventListener('input',()=>{dirty=true;if(id==='model'||id==='name')updateFingerprintGuide();});
-refresh(true); refreshSsaid(); refreshKeybox(); integrityOperation('report');
+filterCatalog();refresh(true);integrityOperation('report');
 </script>
 </body>
 </html>
