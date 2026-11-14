@@ -1,17 +1,14 @@
-# Publishing FingerStore
+# FingerStore independent GitHub publishing
 
-Repo: https://github.com/RectifyData/FingerStore
+**KernelSU Modules catalog eligibility is NOT required.** FingerStore is distributed through its own GitHub repository, using GitHub Releases. The ZIP is compatible with Magisk and KernelSU.
 
-1. Use a new semantic version and `versionCode` for each immutable release. The current version is **1.4.3**, code **143**.
-2. Keep `module.prop`, `module.yaml`, `update.json` and `CHANGELOG.md` synchronized.
-3. Enable GitHub Actions and release immutability in repository Settings. The release job needs `contents: write`.
-4. Open a pull request; all Python, Node.js, shell and reproducible ZIP checks must pass.
-5. Merge validated changes into `main`. The CI workflow detects an absent `v1.4.3` release and uses the KernelSU Modules validation/release action to publish a GitHub **prerelease**. It does not overwrite an existing immutable release. A push to a tag validates but does not duplicate publication.
-6. Confirm the release includes the installable `build_fingerprint_date-143-1.4.3.zip` artifact. The URL must match `update.json`.
-7. Physical-device boot behavior has not been verified, so do not claim the prerelease is daily-driver safe. KernelSU catalog inclusion is a separate approval process at https://developers.kernelsu.org/.
+1. Keep `module.prop`, `update.json`, and `CHANGELOG.md` versioned together: current release **1.4.4**, `versionCode=144`.
+2. Open a pull request, and require its GitHub Actions workflow to pass before merging.
+3. GitHub Actions runs syntax checks, full host regression tests, builds all four Zygisk libraries with Android NDK r27, and creates a deterministic signed-by-checksum ZIP. Build failures abort release.
+4. After verified changes land in `main`, CI uploads a standalone GitHub prerelease tagged `v1.4.4` with the installable module, source ZIP and SHA256SUMS. The installer ZIP has the normalized name `build_fingerprint_date-144-1.4.4.zip` matching `update.json`.
+5. Existing tags/releases are not overwritten. Bump both the module version and `versionCode` for a new release.
+6. Test on physical devices before claiming stable compatibility. Zygisk's runtime Java field injection is experimental until proven on target Android versions.
 
-The catalog has exactly 100 synthetic demo device entries; it does not ship real OEM fingerprint databases, private keys, prior SSAID state or keybox data. Never publish `config.conf`, `original.props`, `integrity-data/`, old `ssaid-data/` or `keybox-vault/`. These are excluded by the packaging rules.
+Never publish `config.conf`, `original.props`, `zygisk.conf`, `integrity-data/`, `keybox-vault/` or `ssaid-data/`. Packaging excludes user state.
 
-The internal module ID stays `build_fingerprint_date` for safe upgrades. Old external SSAID or keybox-provider changes must be separately restored if a previous release modified them.
-
-References: https://developers.kernelsu.org/docs/releasing and https://developers.kernelsu.org/docs/module-yaml
+The original module ID remains `build_fingerprint_date` to preserve install continuity. This release never requires KSU catalog approval or a third-party publishing token.
