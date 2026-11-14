@@ -10,7 +10,7 @@
   const devices=[];
   for(const [brand,names] of Object.entries(grouped)){
     for(const model of names){
-      const slug=model.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+      const slug=model.toLowerCase().replace(/\+/g,'_plus').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
       devices.push({id:brand+':'+slug,brand,model,device:'demo_'+slug,product:'demo_'+slug});
     }
   }
