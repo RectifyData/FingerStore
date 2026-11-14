@@ -1,0 +1,30 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(__dirname+'/../webroot/index.html','utf8');
+const js=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+for(const id of ['zygiskTitle','zygiskToggle','zygiskBadge','zygiskStatus'])assert(html.includes('id="'+id+'"'));
+const elements={};
+const el=id=>elements[id]||={textContent:'',value:id==='catalogVersion'?'14':'',innerHTML:'',checked:false,disabled:false,readOnly:false,style:{},classList:{add(){},remove(){},toggle(){}},addEventListener(e,f){this['on'+e]=f}};
+const ctx={document:{getElementById:el},console,Date,Promise,Error,confirm:()=>true};ctx.window=ctx;
+let enabled=false, commands=[];
+ctx.ksu={moduleInfo:()=>JSON.stringify({moduleDir:'/data/adb/modules/build_fingerprint_date'}),exec(command,cb){
+ commands.push(command);
+ const status='enabled=1\napply_mode=runtime\nresetprop=available\nzygisk_available=yes\nzygisk_enabled='+(enabled?'1':'0')+'\n';
+ if(command.includes("'enable'"))enabled=true;
+ if(command.includes("'disable'") && command.includes("'zygisk'"))enabled=false;
+ Promise.resolve().then(()=>ctx[cb](0,status,''));
+}};
+vm.runInNewContext(fs.readFileSync(__dirname+'/../webroot/catalog.js','utf8'),ctx,{timeout:2000});
+vm.runInNewContext(js,ctx,{timeout:3000});
+const tick=()=>new Promise(r=>setImmediate(r));
+(async()=>{
+ await tick();await tick();
+ assert(el('zygiskStatus').textContent.includes('Disabled'));
+ assert(!commands.some(x=>x.includes("'zygisk'")),'page startup must not auto-enable');
+ await el('zygiskToggle').onclick();await tick();await tick();
+ assert(enabled && commands.some(x=>x.includes("'zygisk'")&&x.includes("'enable'")));
+ assert(el('zygiskStatus').textContent.includes('Opted in'));
+ await el('zygiskToggle').onclick();await tick();await tick();
+ assert(!enabled && commands.some(x=>x.includes("'zygisk'")&&x.includes("'disable'")));
+ console.log('PASS: Zygisk WebUI explicit opt-in/out; never auto-enables');
+})().catch(err=>{console.error(err);process.exitCode=1});
