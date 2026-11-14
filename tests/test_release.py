@@ -28,8 +28,8 @@ with zipfile.ZipFile(module) as archive:
     assert entries == sorted(entries)
     expected = set(builder.RUNTIME) | set(additional)
     assert set(entries) == expected, set(entries) ^ expected
-    for abi, source in additional.items():
-        assert archive.read(abi) == source.read_bytes()
+    for abi, so_path in additional.items():
+        assert archive.read(abi) == so_path.read_bytes()
     assert archive.read('module.prop').decode('utf-8') == (ROOT/'module.prop').read_text()
     assert 'id=build_fingerprint_date' in archive.read('module.prop').decode()
     assert archive.read('skip_mount') == b''
