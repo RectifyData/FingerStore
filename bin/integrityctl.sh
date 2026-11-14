@@ -13,7 +13,7 @@ configval() {
   sed -n "s/^$1=//p" "$CONFIG" | head -n 1
 }
 # Fixed allowlist; excludes all Android IDs, certificates, PEM, private keys,
-# accounts, user identifiers, and SSAID database content.
+# accounts, user identifiers, and account-specific database content.
 snapshot() {
   for key in \
     ro.build.fingerprint ro.build.date.utc ro.build.version.release \
@@ -54,25 +54,13 @@ snapshot() {
     echo 'saved_fingerprint_matches_live=not_enabled'
     echo 'saved_identity_matches_live=not_enabled'
   fi
-  if [ -f "$MODDIR/bin/keyboxctl.sh" ]; then
-    state=$(sh "$MODDIR/bin/keyboxctl.sh" status 2>/dev/null) || state=''
-    for key in keybox_selected software_provider software_provider_matches_selection hardware_attestation_verified; do
-      value=$(printf '%s\n' "$state" | sed -n "s/^$key=//p" | head -n 1)
-      printf '%s=%s\n' "$key" "${value:-unknown}"
-    done
-  else
-    echo 'keybox_selected=unavailable'
-    echo 'software_provider=unavailable'
-    echo 'software_provider_matches_selection=unknown'
-    echo 'hardware_attestation_verified=no'
-  fi
+
 }
 case "${1:-}" in
   report)
     snapshot
     if [ -s "$BASELINE" ]; then echo 'baseline_present=yes'; else echo 'baseline_present=no'; fi
     echo 'play_integrity_verdict=not_accessible_from_module'
-    echo 'provider_runtime_attestation=not_verified'
     echo 'security_patch_property_is_not_attested_patch=yes'
     ;;
   capture)
@@ -106,9 +94,9 @@ case "${1:-}" in
     done < "$BASELINE"
     printf 'changed_field_count=%s\n' "$total"
     if [ "$total" -eq 0 ]; then
-      echo 'diagnosis=No local property/provider-file drift detected; this does not prove an accepted keybox or stable Google verdict.'
+      echo 'diagnosis=No local property drift detected; this does not prove a stable Google verdict.'
     else
-      echo 'diagnosis=Local state changed. Compare fields above and investigate competing modules, ROM updates, and provider reload.'
+      echo 'diagnosis=Local state changed. Compare fields above and investigate competing modules and ROM updates.'
     fi
     ;;
   clear)
