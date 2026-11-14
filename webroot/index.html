@@ -5,16 +5,67 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d111a">
 <title>FingerStore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,300..900&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"@material/web/":"https://esm.run/@material/web/"}}</script>
+<script type="module">
+  // Material Web 3 progressive enhancement; native controls work offline.
+  try {
+    await import('@material/web/select/outlined-select.js');
+    await import('@material/web/select/select-option.js');
+    await import('@material/web/button/filled-button.js');
+    const base=document.getElementById('catalogVersion');
+    const material=document.getElementById('catalogVersionM3');
+    material.value=base.value;
+    material.addEventListener('change',()=>{
+      base.value=material.value;
+      base.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    base.addEventListener('change',()=>{material.value=base.value;});
+    document.getElementById('catalogLoadM3').addEventListener('click',()=>document.getElementById('catalogLoad').click());
+    document.body.classList.add('m3-ready');
+  } catch (_) { /* Network is optional: native Material 3 controls remain. */ }
+</script>
 <style>
-:root{color-scheme:dark;--bg:#0c1018;--card:#171d2a;--card2:#1d2534;--ink:#f1f4ff;--sub:#aab8cd;--border:#323c4d;--primary:#a8c7ff;--good:#7ad8bd;--warn:#ffcd80;--shadow:0 16px 54px #0006}
-@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f6fb;--card:#fff;--card2:#eef3fc;--ink:#172338;--sub:#596981;--border:#d4dce9;--primary:#2849a7;--good:#06745f;--warn:#946002;--shadow:0 12px 35px #25395c1f}}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Roboto,'Arial',sans-serif;background:var(--bg);color:var(--ink)}body{padding:26px 18px calc(144px + env(safe-area-inset-bottom,0px))}
-main{max-width:720px;margin:auto}h1{font-size:27px;letter-spacing:-.7px;line-height:1.15;margin:14px 0 10px;font-weight:760}h2{font-size:15px;letter-spacing:.02em;margin:0 0 15px}p{color:var(--sub);line-height:1.47;margin:0}.eyebrow{font-size:12px;letter-spacing:.18em;font-weight:800;color:var(--primary);text-transform:uppercase}.lead{font-size:14px;max-width:610px}.card{border-radius:24px;background:var(--card);padding:22px;margin-top:19px;border:1px solid var(--border)}.status{display:flex;align-items:center;gap:11px;flex-wrap:wrap}.dot{height:9px;width:9px;border-radius:50%;background:var(--sub)}.dot.on{background:var(--good)}.hint{font-size:12px;color:var(--sub);margin-top:8px}.statusline{margin-top:15px;font-size:13px;overflow-wrap:anywhere}.token{display:inline-flex;border-radius:99px;align-items:center;padding:6px 10px;background:var(--card2);color:var(--sub);font-size:12px;font-weight:700}.row{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}.field{margin-bottom:19px}.field:last-child{margin-bottom:0}label{font-weight:650;font-size:13px;display:block;margin-bottom:9px}textarea,input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px;color:var(--ink);font:inherit;font-size:14px;outline:none}textarea{resize:vertical;min-height:100px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.6}input:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 12%,transparent)}input[type=date]{min-height:49px}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.switchrow{display:flex;justify-content:space-between;gap:12px;align-items:center}.switchrow input{width:20px;height:20px;accent-color:var(--primary)}.switchrow strong{font-size:13px}.switchrow p{font-size:12px;margin-top:5px}.footnote{font-size:12px;padding:15px 0 0}.actions{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;width:min(calc(100% - 28px),610px);padding:10px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow);border-radius:23px;display:flex;gap:9px;align-items:center;backdrop-filter:blur(22px)}button{border:0;border-radius:15px;padding:13px 17px;font:inherit;font-size:13px;font-weight:760;cursor:pointer;min-height:44px}button:disabled{opacity:.5;cursor:wait}.primary{background:var(--primary);color:var(--bg);flex:1}.neutral{background:var(--card2);color:var(--ink)}.danger{background:var(--card2);color:#ed8e90}.link{border:0;background:transparent;padding:6px 0;color:var(--primary);min-height:0;font-size:12px}.notice{font-size:12px;line-height:1.5;border-radius:15px;background:var(--card2);padding:13px 15px;margin-top:16px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere}.notice.error{color:#ff979d}.notice.success{color:var(--good)}.current{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-word;line-height:1.6;margin:7px 0 0;color:var(--sub)}.actions .neutral{flex:0 0 auto}@media(max-width:500px){.card{padding:18px}.two{grid-template-columns:1fr}.actions{gap:6px}.actions button{padding:12px 13px}h1{font-size:25px}}
-
-.sub-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.sub-actions button{flex:1 1 auto}
+:root{color-scheme:dark;--bg:#10131d;--card:#20232f;--card2:#292d3b;--ink:#e4e6f4;--sub:#bfc4d7;--border:#424657;--primary:#bac6ff;--good:#a3ddc5;--warn:#ffcc83;--shadow:0 10px 38px #0005;
+--md-sys-color-primary:var(--primary);--md-sys-color-on-primary:#182956;--md-sys-color-surface:var(--card);--md-sys-color-on-surface:var(--ink);--md-sys-color-outline:var(--border);--md-sys-typescale-body-large-font:"Google Sans Flex",Roboto,sans-serif}
+@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f7f8ff;--card:#fff;--card2:#edf0fa;--ink:#171b2a;--sub:#5e657a;--border:#c9cfde;--primary:#415ba9;--good:#13664f;--warn:#925e08;--shadow:0 10px 32px #1b2f5222;--md-sys-color-on-primary:#fff}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Google Sans Flex","Google Sans",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+body{padding:26px 18px calc(150px + env(safe-area-inset-bottom,0px))}
+main{max-width:780px;margin:auto}h1{font-size:32px;letter-spacing:-.85px;line-height:1.15;margin:14px 0 10px;font-weight:720}h2{font-size:17px;letter-spacing:0;margin:0 0 15px;font-weight:680}
+p{color:var(--sub);line-height:1.5;margin:0}.eyebrow{font-size:12px;letter-spacing:.15em;font-weight:750;color:var(--primary);text-transform:uppercase}
+.lead{font-size:14px;max-width:640px}.card{border-radius:28px;background:var(--card);padding:24px;margin-top:19px;border:1px solid var(--border)}
+.status{display:flex;align-items:center;gap:11px;flex-wrap:wrap}.dot{height:10px;width:10px;border-radius:50%;background:var(--sub)}.dot.on{background:var(--good)}
+.hint{font-size:12px;color:var(--sub);margin-top:8px}.statusline{margin-top:15px;font-size:13px;overflow-wrap:anywhere}
+.token{display:inline-flex;border-radius:999px;align-items:center;padding:6px 12px;background:var(--card2);color:var(--sub);font-size:12px;font-weight:680}
+.row{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}.field{margin-bottom:19px}.field:last-child{margin-bottom:0}
+label{font-weight:650;font-size:13px;display:block;margin-bottom:9px}
+textarea,input,select{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px;color:var(--ink);font:inherit;font-size:14px;outline:none}
+select{appearance:auto;min-height:49px}option{background:var(--card);color:var(--ink)}
+textarea{resize:vertical;min-height:100px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.6}
+input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 17%,transparent)}
+input[type=date]{min-height:49px}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.switchrow{display:flex;justify-content:space-between;gap:12px;align-items:center}.switchrow input{width:20px;height:20px;accent-color:var(--primary)}
+.switchrow strong{font-size:13px}.switchrow p{font-size:12px;margin-top:5px}
+.footnote{font-size:12px;padding:15px 0 0}
+.actions{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;width:min(calc(100% - 28px),650px);padding:10px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow);border-radius:26px;display:flex;gap:9px;align-items:center;backdrop-filter:blur(24px)}
+button{border:0;border-radius:999px;padding:13px 18px;font:inherit;font-size:13px;font-weight:720;cursor:pointer;min-height:44px}
+button:disabled{opacity:.5;cursor:wait}.primary{background:var(--primary);color:var(--bg);flex:1}.neutral{background:var(--card2);color:var(--ink)}.danger{background:var(--card2);color:#ec929a}
+.link{border:0;background:transparent;padding:6px 0;color:var(--primary);min-height:0;font-size:12px}
+.notice{font-size:12px;line-height:1.55;border-radius:18px;background:var(--card2);padding:13px 15px;margin-top:16px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere}
+.notice.error{color:#f5a3ae}.notice.success{color:var(--good)}
+.current{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-word;line-height:1.6;margin:7px 0 0;color:var(--sub)}
+.actions .neutral{flex:0 0 auto}.sub-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.sub-actions button{flex:1 1 auto}
 .code-note{font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
-.field input[type=file]{padding:12px}.section-label{font-size:12px;color:var(--sub)}
-.auto-switch{border-radius:17px;background:var(--card2);padding:14px;margin-top:4px}.identity-grid .field{margin-bottom:5px}.identity-grid{margin-bottom:18px}.reboot{white-space:nowrap}.field input[readonly]{opacity:.8;cursor:default;border-style:dashed}.actions .reboot{flex:0 0 auto}@media(max-width:420px){.actions button{padding:11px 9px;font-size:12px}.actions{width:calc(100% - 20px)}}
+.auto-switch{border-radius:19px;background:var(--card2);padding:14px;margin-top:4px}.identity-grid .field{margin-bottom:5px}.identity-grid{margin-bottom:18px}
+.reboot{white-space:nowrap}.field input[readonly]{opacity:.8;cursor:default;border-style:dashed}
+.demo-tag{color:var(--warn);font-weight:690}.catalog-preview{min-height:50px;font-size:11px}
+#catalogVersionM3,#catalogLoadM3{display:none;width:100%}
+body.m3-ready #catalogVersion{display:none}body.m3-ready #catalogVersionM3{display:block}
+body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:block}
+#catalogLoadM3{--md-filled-button-container-color:var(--primary);--md-filled-button-label-text-color:var(--bg)}
+@media(max-width:500px){.card{padding:18px}.two{grid-template-columns:1fr}.actions{gap:6px}.actions button{padding:12px 13px}h1{font-size:28px}}
+@media(max-width:420px){.actions button{padding:11px 9px;font-size:12px}.actions{width:calc(100% - 20px)}}
 </style>
 </head>
 <body>
@@ -38,6 +89,21 @@ main{max-width:720px;margin:auto}h1{font-size:27px;letter-spacing:-.7px;line-hei
   </div>
   <div class="row" style="margin-top:14px"><button class="link" id="loadCurrent" type="button">Use currently active values</button><button class="link" id="refresh" type="button">Refresh state ↻</button></div>
 </section>
+<section class="card" aria-labelledby="catalogTitle">
+  <div class="row"><h2 id="catalogTitle" style="margin:0">Device demo catalog</h2><span class="token" id="catalogCount">100 device examples</span></div>
+  <p class="hint"><strong class="demo-tag">DEMO ONLY.</strong> Exactly 100 device examples. Fingerprints and device identifiers are synthetic, not extracted from firmware or verified. Android version choices are illustrative and do not indicate OS support. Pixel 5 XL is not an official device model.</p>
+  <div class="field" style="margin-top:18px"><label for="catalogSearch">Find a device</label><input id="catalogSearch" type="search" placeholder="Search Pixel, Galaxy, OnePlus…" autocomplete="off"></div>
+  <div class="two">
+    <div class="field"><label for="catalogDevice">Device example</label><select id="catalogDevice" aria-label="Device demo example"></select></div>
+    <div class="field"><label for="catalogVersion">Android version (demo)</label>
+      <select id="catalogVersion" aria-label="Android version"><option value="8">Android 8</option><option value="9">Android 9</option><option value="10">Android 10</option><option value="11">Android 11</option><option value="12">Android 12</option><option value="13">Android 13</option><option value="14" selected>Android 14</option><option value="15">Android 15</option><option value="16">Android 16</option></select>
+      <md-outlined-select id="catalogVersionM3" aria-label="Android version"><md-select-option value="8"><div slot="headline">Android 8</div></md-select-option><md-select-option value="9"><div slot="headline">Android 9</div></md-select-option><md-select-option value="10"><div slot="headline">Android 10</div></md-select-option><md-select-option value="11"><div slot="headline">Android 11</div></md-select-option><md-select-option value="12"><div slot="headline">Android 12</div></md-select-option><md-select-option value="13"><div slot="headline">Android 13</div></md-select-option><md-select-option value="14" selected><div slot="headline">Android 14</div></md-select-option><md-select-option value="15"><div slot="headline">Android 15</div></md-select-option><md-select-option value="16"><div slot="headline">Android 16</div></md-select-option></md-outlined-select>
+    </div>
+  </div>
+  <div class="notice code-note catalog-preview" id="catalogPreview" role="status" aria-live="polite">Loading example catalog…</div>
+  <div class="sub-actions"><button class="primary" id="catalogLoad" type="button">Use selected demo</button><md-filled-button id="catalogLoadM3">Use selected demo</md-filled-button></div>
+  <p class="footnote">Selecting a demo only loads the editor. It does not change Android until you explicitly apply. Use verified fingerprints from exact firmware for real device identities.</p>
+</section>
 <section class="card" aria-labelledby="editorTitle">
   <h2 id="editorTitle">Custom build information</h2>
   <div class="field"><label for="fingerprint">Build fingerprint</label><textarea id="fingerprint" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="brand/product/device:version/build-id/incremental:user/release-keys"></textarea><div class="hint">Paste a complete, genuine Android build fingerprint. Keep it compatible with your ROM.</div></div>
@@ -57,37 +123,15 @@ main{max-width:720px;margin:auto}h1{font-size:27px;letter-spacing:-.7px;line-hei
     <div class="field"><label for="patch">Security patch level (optional)</label><input id="patch" placeholder="YYYY-MM-DD" inputmode="numeric" maxlength="10"><div class="hint">Leave blank to leave this property untouched</div></div>
   </div>
   <div class="switchrow" style="margin-top:8px"><div><strong>Mirror existing partition build and product values</strong><p>Advanced: build properties in system, product, vendor, system_ext, odm and bootimage, plus existing product identity variants.</p></div><input type="checkbox" id="partitions" aria-label="Mirror existing partition build values"></div>
+  <div class="field" style="margin-top:18px"><label for="applyMode">When to apply</label>
+    <select id="applyMode"><option value="reboot" selected>After reboot · recommended</option><option value="runtime">At runtime · UNSTABLE</option></select>
+    <div class="notice" id="applyModeWarning" role="status">Recommended: save now and apply on startup.</div>
+  </div>
   <div class="notice" id="fingerprintGuide">Fingerprint layout: brand / product code / device codename : Android version / build ID / incremental : build type / tags. Model is a separate property.</div>
   <div class="notice">Build properties only. Google generates the Play Integrity verdict labels and test ID; they cannot be edited here. Changing build properties cannot guarantee Play Integrity or hardware attestation.</div>
 </section>
-<p class="footnote">Changes are saved when you tap Apply. Reboot after applying or restoring for Android and already-running apps to reload build identity. Some hardware-backed values cannot be spoofed by a systemless module.</p>
+<p class="footnote"><strong>Runtime changes are unstable.</strong> Already-running apps can cache older values, and other modules or services can overwrite them. Runtime changes persist across reboots. After-reboot mode saves without editing active properties. Neither mode changes hardware identity.</p>
 
-<section class="card" aria-labelledby="ssaidTitle">
-  <div class="row"><h2 id="ssaidTitle" style="margin:0">Android ID / SSAID</h2><span class="token">Per-app · Android 8+</span></div>
-  <p class="hint">Edit the 64-bit Android ID seen by a selected app. Only an existing SSAID entry can be changed. Changes are staged and installed before SettingsProvider starts on your next reboot. No live database editing.</p>
-  <div class="field" style="margin-top:18px"><label for="ssaidPackage">App package name (owner user only)</label><input id="ssaidPackage" placeholder="com.example.app" spellcheck="false" autocapitalize="off" autocomplete="off"><div class="hint">Use a package already installed and listed in Android's SSAID database. Do not select system apps.</div></div>
-  <div class="switchrow auto-switch" style="margin:10px 0 17px">
-    <div><strong>Sync SSAID with saved build fingerprint</strong><p>Optional. Derives a stable, app-specific 16-digit hex ID using the selected fingerprint and a locally generated secret salt. Changing the fingerprint restages the selected app ID.</p></div>
-    <input type="checkbox" id="ssaidSync" aria-label="Sync this app SSAID with the saved build fingerprint">
-  </div>
-  <div class="field"><label for="ssaidValue">Manual SSAID (16 hexadecimal characters)</label><input id="ssaidValue" maxlength="16" placeholder="0123456789abcdef" spellcheck="false" autocapitalize="off" autocomplete="off"><div class="hint">Available when sync is off. Per-app ID is different from Settings.Secure's legacy system Android ID.</div></div>
-  <div class="sub-actions"><button class="primary" id="ssaidStage" type="button">Stage ID change</button><button class="neutral" id="ssaidRestore" type="button">Restore app ID</button><button class="neutral" id="ssaidCancel" type="button">Cancel pending</button></div>
-  <div class="notice code-note" id="ssaidStatus" role="status">Checking per-app ID support…</div>
-  <p class="footnote">The first edit creates an original SSAID database backup. A source-hash check prevents overwriting other settings changes. If it detects a mismatch, the boot operation is skipped. Restoring an app ID also requires a reboot. Unlike systemless build-property overrides, an applied SSAID edit changes Android's private settings database and may persist even if this module is disabled; explicitly restore first if needed.</p>
-</section>
-<section class="card" aria-labelledby="keyboxTitle">
-  <div class="row"><h2 id="keyboxTitle" style="margin:0">Keybox loader</h2><span class="token">Local inspection</span></div>
-  <p class="hint">Custom, offline XML/PEM loader for inspecting a keybox file you own. The file stays in WebUI memory and is never uploaded, saved into the module, or passed to shell.</p>
-  <div class="field" style="margin-top:17px"><label for="keyboxFile">Choose keybox XML</label><input id="keyboxFile" type="file" accept=".xml,text/xml,application/xml" aria-label="Choose keybox XML file"></div>
-  <div class="notice code-note" id="keyboxStatus" role="status">No keybox loaded. Choose a file to check its structure and the algorithms/certificate counts.</div>
-  <div class="notice">Hardware-backed attestations are signed by KeyMint's TEE/StrongBox or a trusted provisioning service. The profile vault below can switch XML keyboxes for a separately installed Oh My Keymint software provider, but cannot turn software signing into genuinely hardware-backed attestation.</div>
-  <div class="field" style="margin-top:16px"><label for="keyboxPath">Source XML path (root-readable)</label><input id="keyboxPath" placeholder="/data/local/tmp/my-keybox.xml" spellcheck="false" autocomplete="off"><div class="hint">The document picker above is for local inspection only. To import securely, copy your private XML to a root-readable file yourself; the WebUI deliberately never embeds private keys in shell commands.</div></div>
-  <div class="field"><label for="keyboxAlias">Vault profile name</label><input id="keyboxAlias" placeholder="my_keys" maxlength="40" spellcheck="false" autocomplete="off"><div class="hint">A short label identifying this locally stored keybox.</div></div>
-  <div class="sub-actions"><button class="neutral" type="button" id="keyboxImport">Import into vault</button><button class="neutral" type="button" id="keyboxSelect">Select profile</button><button class="neutral" type="button" id="keyboxList">List profiles</button></div>
-  <div class="sub-actions"><button class="primary" type="button" id="keyboxDeploy">Deploy to software provider</button><button class="neutral" type="button" id="keyboxRestore">Restore provider backup</button><button class="danger" type="button" id="keyboxRemove">Delete unused profile</button></div>
-  <div class="notice code-note" id="keyboxVaultStatus" role="status">Checking optional software-provider integration…</div>
-  <div class="hint" style="margin-top:14px">A software provider must already be installed and enabled. No KeyMint services are replaced or restarted by this module. Deploying a keybox can affect app sign-in/security checks; always retain a backup.</div>
-</section>
 <section class="card" aria-labelledby="integrityTitle">
   <div class="row"><h2 id="integrityTitle" style="margin:0">Integrity stability diagnostics</h2><span class="token">Read-only</span></div>
   <p class="hint">When Play Integrity passes, capture a baseline. If labels disappear later, compare the live build properties and local software-provider file state. This cannot read or change Google's server-side verdict, prove a keybox valid, or reveal a private key.</p>
@@ -97,6 +141,7 @@ main{max-width:720px;margin:auto}h1{font-size:27px;letter-spacing:-.7px;line-hei
 </section>
 </main>
 <div class="actions" role="group" aria-label="Module actions"><button class="neutral" id="reset" type="button">Restore</button><button class="primary" id="apply" type="button">Apply changes</button><button class="neutral reboot" id="reboot" type="button" title="Reboot Android to reload properties" aria-label="Reboot Android">↻ Reboot</button></div>
+<script src="catalog.js"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
