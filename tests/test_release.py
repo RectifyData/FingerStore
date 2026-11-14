@@ -17,13 +17,19 @@ spec.loader.exec_module(builder)
 version, code = builder.validate()
 module = ROOT / 'dist' / f'FingerStore-v{version}-module.zip'
 source = ROOT / 'dist' / f'FingerStore-v{version}-source.zip'
+compiled = (ROOT / 'zygisk' / 'libs').is_dir()
+additional = builder.zygisk_entries(required=compiled)
+compile_option = ['--with-zygisk'] if compiled else []
 if not module.is_file() or not source.is_file():
-    subprocess.run([sys.executable, str(ROOT/'scripts/build.py')], check=True)
+    subprocess.run([sys.executable, str(ROOT/'scripts/build.py'), *compile_option], check=True)
 
 with zipfile.ZipFile(module) as archive:
     entries = archive.namelist()
     assert entries == sorted(entries)
-    assert set(entries) == set(builder.RUNTIME), set(entries) ^ set(builder.RUNTIME)
+    expected = set(builder.RUNTIME) | set(additional)
+    assert set(entries) == expected, set(entries) ^ expected
+    for abi, source in additional.items():
+        assert archive.read(abi) == source.read_bytes()
     assert archive.read('module.prop').decode('utf-8') == (ROOT/'module.prop').read_text()
     assert 'id=build_fingerprint_date' in archive.read('module.prop').decode()
     assert archive.read('skip_mount') == b''
@@ -41,6 +47,8 @@ with zipfile.ZipFile(module) as archive:
 with zipfile.ZipFile(source) as archive:
     names = archive.namelist()
     assert 'scripts/build.py' in names and 'tests/test_module.py' in names
+    assert 'zygisk/jni/zygisk.hpp' in names and 'zygisk/jni/fingerstore.cpp' in names
+    assert not any(x.startswith('zygisk/libs/') or x.startswith('zygisk/obj/') for x in names)
     assert '.github/workflows/release.yml' in names
     assert 'docs/TECHNICAL.md' in names
     assert all('keybox-vault' not in p and not p.startswith('ssaid-data/') and 'config.conf' not in p for p in names)
@@ -61,7 +69,7 @@ assert module.stat().st_size < 100 * 1024 * 1024
 
 # Reproduce both archives in a second build and require byte-identical outputs.
 old = (module.read_bytes(), source.read_bytes(), checksum_file.read_bytes())
-subprocess.run([sys.executable, str(ROOT/'scripts/build.py')], check=True, stdout=subprocess.DEVNULL)
+subprocess.run([sys.executable, str(ROOT/'scripts/build.py'), *compile_option], check=True, stdout=subprocess.DEVNULL)
 new = (module.read_bytes(), source.read_bytes(), checksum_file.read_bytes())
 assert new == old, 'Packaging must be byte-for-byte reproducible'
 print('PASS: archive contents, safe filenames, modes, checksum, metadata, deterministic build')
