@@ -1,7 +1,7 @@
 id=build_fingerprint_date
 name=FingerStore
-version=1.4.3
-versionCode=143
+version=1.4.4
+versionCode=144
 author=Jay Baumforster
-description=Systemless fingerprint, build date and device identity editor with Material 3 WebUI, exactly 100 illustrative device examples, Android 8-16 demo version choices, safe reboot staging, warned runtime changes, and read-only local stability diagnostics.
+description=Magisk and KernelSU build identity editor with 100 demo device fingerprints, Android version picker, runtime/reboot modes and optional Zygisk-only runtime Build.FINGERPRINT injection (off by default).
 updateJson=https://raw.githubusercontent.com/RectifyData/FingerStore/main/update.json
