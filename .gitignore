@@ -23,3 +23,8 @@ dist/
 __pycache__/
 .pytest_cache/
 .DS_Store
+
+# Local Android NDK build outputs and optional device-specific state
+zygisk/libs/
+zygisk/obj/
+zygisk.conf
