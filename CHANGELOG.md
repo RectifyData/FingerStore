@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4.4 — Magisk compatibility and optional Zygisk
+
+- Support standard Magisk installation and boot integration, preserve existing KernelSU support and stable internal module ID.
+- Ship native optional Zygisk modules compiled for arm64-v8a, armeabi-v7a, x86 and x86_64.
+- **Zygisk is disabled by default**. Users can explicitly opt in via WebUI or root CLI; it only injects the selected Java `android.os.Build.FINGERPRINT` value into newly launched apps **in runtime apply mode**. The bridge does nothing in after-reboot mode, does not alter system_server, and installs no hooks.
+- Runtime fingerprint injection is experimental and cannot update already-running apps. Magisk's Zygisk must be enabled separately in Magisk settings; reboot once to load the bridge, then restart target apps.
+- Improve Magisk installer messages, provide a useful manager action/CLI, and stop touching deleted legacy installer scripts.
+- Replace KernelSU Modules catalog validation and release dependency with independent GitHub Actions testing, Android NDK compilation, deterministic package verification and standalone GitHub prerelease publishing.
+- Keep the 100-entry **synthetic** demo catalog from v1.4.3; examples are not verified OEM fingerprints.
+- No physical-device Zygisk compatibility or boot testing has been performed. Use this as an experimental prerelease.
+
 ## v1.4.3 — Material 3, device demo catalog and apply timing
 
 - Remove SSAID editing, linked SSAID staging, the keybox loader, private profile storage and external software-provider modification code from the installable module and WebUI.
