@@ -2,6 +2,7 @@
 // Applies ONLY the selected android.os.Build.FINGERPRINT in newly forked app
 // processes, ONLY when enabled by the user, and ONLY in runtime apply mode.
 // Does not modify system_server, install hooks or edit global properties.
+#include <sys/types.h> // dev_t and ino_t required by the upstream public Zygisk API
 #include "zygisk.hpp"
 #include <fcntl.h>
 #include <stdint.h>
