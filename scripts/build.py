@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproducible, dependency-free KernelSU release builder for FingerStore."""
+"""Reproducible Magisk / KernelSU module release builder for FingerStore."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +19,7 @@ RUNTIME = (
     'bin/fpctl.sh', 'bin/integrityctl.sh',
     'webroot/index.html', 'webroot/catalog.js', 'README.md',
 )
-SOURCE_PREFIXES = ('bin/', 'webroot/', 'tests/', 'scripts/', '.github/workflows/', 'docs/')
+SOURCE_PREFIXES = ('bin/', 'webroot/', 'tests/', 'scripts/', '.github/workflows/', 'docs/', 'zygisk/')
 SOURCE_FILES = {
     'module.prop', 'customize.sh', 'service.sh',
     'boot-completed.sh', 'action.sh', 'skip_mount', 'README.md',
@@ -27,10 +27,11 @@ SOURCE_FILES = {
     'update.json', '.gitignore',
 }
 FORBIDDEN = ('keybox-vault/', 'ssaid-data/', 'integrity-data/', '.git/', 'dist/')
-FORBIDDEN_NAMES = {'config.conf', 'original.props', 'system.prop', 'keybox.xml',
+FORBIDDEN_NAMES = {'config.conf', 'original.props', 'system.prop', 'zygisk.conf', 'keybox.xml',
                    '.env', 'private.pem', 'provider-original.xml'}
 DENY_EXTENSIONS = ('.p12', '.pfx', '.jks', '.keystore', '.key', '.pem', '.pk8')
 ARCHIVE_TIME = (2026, 1, 1, 0, 0, 0)
+ZYGISK_ABIS = {'armeabi-v7a': (1, 40), 'arm64-v8a': (2, 183), 'x86': (1, 3), 'x86_64': (2, 62)}
 
 
 def properties(path: Path) -> dict[str, str]:
@@ -58,6 +59,8 @@ def collect_source() -> list[str]:
         name = item.relative_to(ROOT).as_posix()
         if (name.endswith((".pyc", ".pyo", ".tmp", ".bak")) or
                 any(part in ("__pycache__", ".pytest_cache", ".git", "dist") for part in Path(name).parts)):
+            continue
+        if name.startswith(('zygisk/libs/', 'zygisk/obj/')):
             continue
         if name in SOURCE_FILES or name.startswith(SOURCE_PREFIXES):
             names.append(name)
@@ -109,6 +112,8 @@ def validate() -> tuple[str, int]:
         raise ValueError('Invalid module.yaml identity or asset pattern')
     if 'schemaVersion: 1' not in manifest:
         raise ValueError('Unsupported module.yaml schema')
+    for path in ('zygisk/jni/zygisk.hpp', 'zygisk/jni/fingerstore.cpp', 'zygisk/jni/Android.mk', 'zygisk/jni/Application.mk'):
+        safe_file(path)
     if not (ROOT / 'webroot/index.html').is_file():
         raise ValueError('KernelSU WebUI entrypoint missing')
     for file in RUNTIME:
@@ -120,12 +125,51 @@ def validate() -> tuple[str, int]:
     return version, version_code
 
 
-def build_zip(target: Path, names: list[str]) -> None:
+def zygisk_entries(required: bool = False) -> dict[str, Path]:
+    """Map compiled NDK libraries to Magisk's expected archive ABI filenames.
+
+    In a normal source-only host build, Zygisk binaries are optional.
+    Release CI requires all four verified ELF ABIs and fails closed otherwise.
+    """
+    compiled = ROOT / 'zygisk' / 'libs'
+    entries: dict[str, Path] = {}
+    for abi, (elf_class, machine) in ZYGISK_ABIS.items():
+        src = compiled / abi / 'libfingerstore.so'
+        if not src.exists():
+            if required:
+                raise ValueError(f'Optional Zygisk binary missing for {abi}; run ndk-build')
+            continue
+        if src.is_symlink() or not src.is_file():
+            raise ValueError(f'Unsafe Zygisk binary: {src}')
+        data = src.read_bytes()
+        if len(data) < 64 or data[:4] != b'\x7fELF' or data[4] != elf_class or data[5] != 1:
+            raise ValueError(f'Invalid Zygisk ELF class or endian for {abi}')
+        if int.from_bytes(data[18:20], 'little') != machine:
+            raise ValueError(f'Invalid Zygisk ELF machine for {abi}')
+        entries[f'zygisk/{abi}.so'] = src
+    if entries and len(entries) != len(ZYGISK_ABIS):
+        raise ValueError('Incomplete Zygisk build. All four architectures are required.')
+    if required and len(entries) != len(ZYGISK_ABIS):
+        raise ValueError('Complete native Zygisk build is required for release.')
+    return entries
+
+
+def runtime_entries(include_zygisk: bool = False) -> dict[str, Path]:
+    entries = {path: ROOT / path for path in RUNTIME}
+    if include_zygisk:
+        entries.update(zygisk_entries(required=True))
+    return entries
+
+
+def build_zip(target: Path, names: list[str], additional: dict[str, Path] | None = None) -> None:
     with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9,
                          strict_timestamps=True) as archive:
         for name in sorted(names):
-            safe_file(name)
-            data = (ROOT / name).read_bytes()
+            if additional and name in additional:
+                data = additional[name].read_bytes()
+            else:
+                safe_file(name)
+                data = (ROOT / name).read_bytes()
             zinfo = zipfile.ZipInfo(name, date_time=ARCHIVE_TIME)
             zinfo.create_system = 3
             mode = 0o755 if name.endswith('.sh') or name == 'scripts/build.py' else 0o644
@@ -134,7 +178,7 @@ def build_zip(target: Path, names: list[str]) -> None:
             archive.writestr(zinfo, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 
 
-def verify_zip(path: Path, expected: set[str]) -> None:
+def verify_zip(path: Path, expected: set[str], additional: dict[str, Path] | None = None) -> None:
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         if len(names) != len(set(names)) or set(names) != expected:
@@ -144,7 +188,8 @@ def verify_zip(path: Path, expected: set[str]) -> None:
         if not names or 'module.prop' not in names:
             raise ValueError('ZIP missing root module.prop')
         for file in names:
-            safe_file(file)
+            if not additional or file not in additional:
+                safe_file(file)
         if path.name.endswith('-module.zip') and any(x.startswith('tests/') or x.startswith('.github/') for x in names):
             raise ValueError('Installable module ships development files')
 
@@ -152,21 +197,23 @@ def verify_zip(path: Path, expected: set[str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--check', action='store_true', help='validate source without packaging')
+    parser.add_argument('--with-zygisk', action='store_true', help='require four native ABI libraries in release ZIP')
     args = parser.parse_args()
     version, code = validate()
     print(f'Valid FingerStore v{version} (module ID build_fingerprint_date, versionCode {code})')
     if args.check:
         return 0
     DIST.mkdir(exist_ok=True)
-    runtime = list(RUNTIME)
+    compiled = zygisk_entries(required=args.with_zygisk) if args.with_zygisk else {}
+    runtime = list(RUNTIME) + list(compiled)
     source = collect_source()
     if len(source) != len(set(source)):
         raise ValueError('Duplicate paths in source')
     module_zip = DIST / f'FingerStore-v{version}-module.zip'
     source_zip = DIST / f'FingerStore-v{version}-source.zip'
-    build_zip(module_zip, runtime)
+    build_zip(module_zip, runtime, compiled)
     build_zip(source_zip, source)
-    verify_zip(module_zip, set(runtime))
+    verify_zip(module_zip, set(runtime), compiled)
     verify_zip(source_zip, set(source))
     hashes = []
     for f in (module_zip, source_zip):
