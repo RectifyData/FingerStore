@@ -39,15 +39,18 @@ jobs:
           set -euo pipefail
           for test in tests/test_*.py; do python3 "$test"; done
           for test in tests/test_*.cjs; do node "$test"; done
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: ''
       - name: Compile optional Zygisk bridge (4 Android ABIs)
         shell: bash
         run: |
           set -euo pipefail
-          : "${ANDROID_HOME:?Android SDK not configured}"
-          NDK_DIR="$ANDROID_HOME/ndk/27.2.12479018"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/.android/sdk}}"
+          NDK_DIR="$SDK_ROOT/ndk/27.2.12479018"
           if [ ! -x "$NDK_DIR/ndk-build" ]; then
-            command -v sdkmanager
-            yes | sdkmanager --install "ndk;27.2.12479018" > /dev/null || test -x "$NDK_DIR/ndk-build"
+            sdkmanager --sdk_root="$SDK_ROOT" --install "ndk;27.2.12479018"
           fi
           test -x "$NDK_DIR/ndk-build"
           "$NDK_DIR/ndk-build" -C zygisk NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=jni/Android.mk NDK_APPLICATION_MK=jni/Application.mk -j2
