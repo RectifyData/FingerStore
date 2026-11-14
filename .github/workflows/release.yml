@@ -1,10 +1,9 @@
-name: Verify and publish for KernelSU Modules
+name: Verify and publish FingerStore (Magisk + KernelSU)
 
 on:
   pull_request:
   push:
     branches: [main]
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -12,51 +11,75 @@ permissions:
 
 jobs:
   validate:
+    name: Validate scripts, build all Zygisk ABIs, run tests
     runs-on: ubuntu-latest
     outputs:
       module_zip: ${{ steps.package.outputs.module_zip }}
+      version: ${{ steps.package.outputs.version }}
+      version_code: ${{ steps.package.outputs.version_code }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
-      - name: Install BusyBox before checking shell scripts
+      - name: Install BusyBox for Android shell compatibility checks
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y busybox
-      - name: Validate module and scripts
+      - name: Validate module sources and shell syntax
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/build.py --check
-          for script in *.sh bin/*.sh; do sh -n "$script"; bash -n "$script"; busybox ash -n "$script"; done
-      - name: Run regression tests
+          for script in *.sh bin/*.sh; do
+            sh -n "$script"
+            bash -n "$script"
+            busybox ash -n "$script"
+          done
+      - name: Run host regression tests
         shell: bash
         run: |
           set -euo pipefail
           for test in tests/test_*.py; do python3 "$test"; done
           for test in tests/test_*.cjs; do node "$test"; done
-      - name: Build deterministic module archives and check integrity
-        id: package
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: ''
+      - name: Compile optional Zygisk bridge (4 Android ABIs)
+        shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/build.py
-          VERSION="$(sed -n 's/^version=//p' module.prop)"
-          echo "module_zip=dist/FingerStore-v${VERSION}-module.zip" >> "$GITHUB_OUTPUT"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/.android/sdk}}"
+          NDK_DIR="$SDK_ROOT/ndk/27.2.12479018"
+          if [ ! -x "$NDK_DIR/ndk-build" ]; then
+            sdkmanager --sdk_root="$SDK_ROOT" --install "ndk;27.2.12479018"
+          fi
+          test -x "$NDK_DIR/ndk-build"
+          "$NDK_DIR/ndk-build" -C zygisk NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=jni/Android.mk NDK_APPLICATION_MK=jni/Application.mk -j2
+          for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+            test -s "zygisk/libs/$abi/libfingerstore.so"
+          done
+      - name: Build Magisk / KernelSU release with optional Zygisk native libraries
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build.py --with-zygisk
           python3 tests/test_release.py
           (cd dist && sha256sum -c SHA256SUMS)
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+          VERSION="$(sed -n 's/^version=//p' module.prop)"
+          CODE="$(sed -n 's/^versionCode=//p' module.prop)"
+          echo "module_zip=dist/FingerStore-v${VERSION}-module.zip" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$CODE" >> "$GITHUB_OUTPUT"
+          cp "dist/FingerStore-v${VERSION}-module.zip" "dist/build_fingerprint_date-${CODE}-${VERSION}.zip"
+      - name: Upload tested module, source, checksums
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fingerstore-verified-build
           path: dist/*
           if-no-files-found: error
-      - name: KernelSU catalog precheck (no release)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: KernelSU-Modules/tools/actions/module-release@e0ac1a6193e698beac3c2fc47dec88d180efca8a
-        with:
-          zip: ${{ steps.package.outputs.module_zip }}
-          manifest: module.yaml
-          dry-run: 'true'
 
   publish:
-    name: Publish verified immutable prerelease
+    name: Publish stand-alone GitHub prerelease
     needs: validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -68,39 +91,41 @@ jobs:
         with:
           name: fingerstore-verified-build
           path: dist
-      - name: Resolve version, verify artifact and avoid republishing immutable tags
+      - name: Verify artifacts and avoid overwriting previous releases
         id: version
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          VERSION="$(sed -n 's/^version=//p' module.prop)"
+          VERSION="${{ needs.validate.outputs.version }}"
+          CODE="${{ needs.validate.outputs.version_code }}"
           TAG="v$VERSION"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          test "$(sed -n 's/^version=//p' module.prop)" = "$VERSION"
+          test "$(sed -n 's/^versionCode=//p' module.prop)" = "$CODE"
           (cd dist && sha256sum -c SHA256SUMS)
+          cmp "dist/FingerStore-v${VERSION}-module.zip" "dist/build_fingerprint_date-${CODE}-${VERSION}.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG already exists; immutable release will not be overwritten"
+            echo "Release already exists; refusing overwrite"
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: KernelSU validated immutable prerelease
+      - name: Create GitHub prerelease without KernelSU catalog dependency
         if: steps.version.outputs.publish == 'true'
-        id: release
-        uses: KernelSU-Modules/tools/actions/module-release@e0ac1a6193e698beac3c2fc47dec88d180efca8a
-        with:
-          zip: ${{ needs.validate.outputs.module_zip }}
-          manifest: module.yaml
-          tag: ${{ steps.version.outputs.tag }}
-          prerelease: 'true'
-          require-immutable: 'true'
-          release-notes-file: CHANGELOG.md
-      - name: Report
-        if: steps.version.outputs.publish == 'true'
+        shell: bash
         env:
-          RELEASE_URL: ${{ steps.release.outputs.release-url }}
-          SHA256: ${{ steps.release.outputs.sha256 }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Published ${RELEASE_URL}"
-          echo "SHA256 ${SHA256}"
+          set -euo pipefail
+          VERSION="${{ needs.validate.outputs.version }}"
+          CODE="${{ needs.validate.outputs.version_code }}"
+          gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "FingerStore v$VERSION" \
+            --prerelease \
+            --notes-file CHANGELOG.md \
+            "dist/build_fingerprint_date-${CODE}-${VERSION}.zip" \
+            "dist/FingerStore-v${VERSION}-source.zip" \
+            dist/SHA256SUMS

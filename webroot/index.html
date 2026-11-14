@@ -132,12 +132,19 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
 </section>
 <p class="footnote"><strong>Runtime changes are unstable.</strong> Already-running apps can cache older values, and other modules or services can overwrite them. Runtime changes persist across reboots. After-reboot mode saves without editing active properties. Neither mode changes hardware identity.</p>
 
+<section class="card" aria-labelledby="zygiskTitle">
+  <div class="row"><h2 id="zygiskTitle" style="margin:0">Optional Zygisk fingerprint injection</h2><span class="token" id="zygiskBadge">Off by default</span></div>
+  <p class="hint">When explicitly enabled, this optional bridge updates only Java <code>Build.FINGERPRINT</code> for newly launched app processes in <strong>At runtime</strong> mode. Requires Magisk Zygisk. Normal Magisk and KernelSU functionality works without it.</p>
+  <div class="notice" id="zygiskStatus" role="status" aria-live="polite">Checking optional runtime bridge…</div>
+  <div class="sub-actions"><button class="neutral" id="zygiskToggle" type="button">Enable optional Zygisk</button></div>
+  <p class="footnote">It does not affect system_server, other identity fields, or already-running apps. Enable Zygisk in Magisk settings and reboot once, then restart target apps. If it misbehaves, disable it and restart affected apps.</p>
+</section>
 <section class="card" aria-labelledby="integrityTitle">
   <div class="row"><h2 id="integrityTitle" style="margin:0">Integrity stability diagnostics</h2><span class="token">Read-only</span></div>
-  <p class="hint">When Play Integrity passes, capture a baseline. If labels disappear later, compare the live build properties and local software-provider file state. This cannot read or change Google's server-side verdict, prove a keybox valid, or reveal a private key.</p>
+  <p class="hint">When Play Integrity passes, capture a baseline. If labels disappear later, compare locally readable build identity and security patch properties. This cannot read or change Google's server-side verdict, establish hardware attestation, or retrieve private information.</p>
   <div class="sub-actions"><button class="neutral" type="button" id="integrityCapture">Capture passing baseline</button><button class="primary" type="button" id="integrityCompare">Compare after failure</button><button class="neutral" type="button" id="integrityRefresh">Refresh diagnostics</button></div>
   <div class="notice code-note" id="integrityStatus" role="status" aria-live="polite">Checking local integrity signals…</div>
-  <p class="footnote">Local property reports cannot validate device attestation. On Android 13+, Strong Integrity also requires device integrity and recent security updates to real partitions. This checker never reads keybox XML, app IDs, or credentials.</p>
+  <p class="footnote">Local property reports cannot validate device attestation. On Android 13+, Strong Integrity also requires device integrity and recent security updates to real partitions. This checker never reads app IDs or credentials.</p>
 </section>
 </main>
 <div class="actions" role="group" aria-label="Module actions"><button class="neutral" id="reset" type="button">Restore</button><button class="primary" id="apply" type="button">Apply changes</button><button class="neutral reboot" id="reboot" type="button" title="Reboot Android to reload properties" aria-label="Reboot Android">↻ Reboot</button></div>
@@ -145,7 +152,7 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
-const elements=['apply','reset','refresh','loadCurrent','reboot','catalogLoad','catalogSearch','catalogDevice','catalogVersion','applyMode','integrityCapture','integrityCompare','integrityRefresh'];
+const elements=['apply','reset','refresh','loadCurrent','reboot','catalogLoad','catalogSearch','catalogDevice','catalogVersion','applyMode','zygiskToggle','integrityCapture','integrityCompare','integrityRefresh'];
 const identityFields=['brand','device','model','name','manufacturer'];
 let autoModel=''; let lastAutofillFingerprint=null; let dirty=false;
 let active = {}, cfg = {}, moduleDir = '/data/adb/modules/build_fingerprint_date';
@@ -207,6 +214,31 @@ function updateApplyMode(){
  $('applyModeWarning').classList.toggle('error',live);
 }
 
+function updateZygiskState(){
+ const installed=cfg.zygisk_available==='yes',enabled=cfg.zygisk_enabled==='1';
+ $('zygiskBadge').textContent=enabled?'Enabled':'Off by default';
+ $('zygiskToggle').textContent=enabled?'Disable optional Zygisk':'Enable optional Zygisk';
+ $('zygiskStatus').textContent=!installed
+   ? 'No native Zygisk binaries found. Install the full Magisk-compatible ZIP for this optional feature.'
+   : enabled
+     ? (cfg.apply_mode==='runtime'&&cfg.enabled==='1'
+        ? 'Opted in. Newly launched app processes only; Magisk Zygisk must be enabled.'
+        : 'Opted in, but injection stays inactive until a fingerprint is saved in At runtime mode.')
+     : 'Disabled. Normal fingerprint editing works without Zygisk.';
+}
+async function toggleZygisk(){
+ if(cfg.zygisk_available!=='yes')return notice('Optional native Zygisk binaries are missing.','error');
+ const enable=cfg.zygisk_enabled!=='1';
+ if(!confirm(enable
+   ? 'Enable optional runtime-only fingerprint injection for newly started apps? Enable Magisk Zygisk and restart affected apps.'
+   : 'Disable optional Zygisk injection for newly started apps?'))return;
+ setBusy(true);
+ try{
+   await cmd(['zygisk',enable?'enable':'disable']);
+   await refresh(false);
+   notice(enable?'Zygisk opt-in saved; restart target apps.':'Zygisk disabled for new apps; restart affected apps.');
+ }catch(e){notice('Zygisk setting failed: '+e.message,'error');}finally{setBusy(false)}
+}
 function parse(s){const out={}; for(const line of s.split(/\r?\n/)){const i=line.indexOf('=');if(i>0)out[line.slice(0,i)]=line.slice(i+1);}return out;}
 function setBusy(isBusy){elements.forEach(id=>$(id).disabled=isBusy);}
 function dateFromEpoch(secs){const n=Number(secs);if(!Number.isFinite(n)||n<946684800||n>4102444800)return '';return new Date(n*1000).toISOString().slice(0,10)}
@@ -279,6 +311,7 @@ async function refresh(loadInputs=true){setBusy(true);notice('Reading properties
  $('currentPatch').textContent=cfg.current_patch||'Not reported';
  for(const id of ['brand','device','model','name']) $('current'+id[0].toUpperCase()+id.slice(1)).textContent=cfg['current_'+id]||'Not reported';
  checkActiveProperties(cfg);
+ updateZygiskState();
  const enabled=cfg.enabled==='1';
  $('statusText').textContent=enabled?'Custom properties enabled':'Original properties / overrides disabled';
  $('persistence').textContent=enabled?'Until you edit or restore · survives reboots':'Off · originals restored';
@@ -328,6 +361,7 @@ $('applyMode').addEventListener('change',()=>{dirty=true;updateApplyMode();});
 $('integrityCapture').addEventListener('click',()=>integrityOperation('capture'));
 $('integrityCompare').addEventListener('click',()=>integrityOperation('compare'));
 $('integrityRefresh').addEventListener('click',()=>integrityOperation('report'));
+$('zygiskToggle').addEventListener('click',toggleZygisk);
 $('apply').addEventListener('click',apply);
 $('reset').addEventListener('click',reset);
 $('reboot').addEventListener('click',rebootDevice);

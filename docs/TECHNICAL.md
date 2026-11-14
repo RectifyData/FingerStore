@@ -1,10 +1,48 @@
-# FingerStore v1.4.3 — Technical reference
+# FingerStore v1.4.4 — Technical reference
 
 ## Scope
 
-FingerStore is a KernelSU systemless module whose stable internal ID is `build_fingerprint_date`. It edits build identity only: fingerprint, dates, optional reported patch level, and selected `ro.product.*` identity values. It does **not** change the actual Android build, installed firmware, verified boot state, security patches or Google's Play Integrity verdict.
+FingerStore is a Magisk / KernelSU systemless module whose stable internal ID is `build_fingerprint_date`. It edits build identity only: fingerprint, dates, optional reported patch level, and selected `ro.product.*` identity values. It does **not** change the actual Android build, installed firmware, verified boot state, security patches or Google's Play Integrity verdict.
 
 Android SSAID editing, the keybox XML loader, keybox profiles and external software-provider deployment were removed in v1.4.3. Those old features are no longer invoked by startup or installed in the ZIP. **The module does not attempt to revert external data changed by older releases**.
+
+## Magisk integration and optional Zygisk
+
+The normal systemless implementation uses `module.prop`, `customize.sh`,
+`system.prop`, `service.sh`, `action.sh`, and the root CLI at `bin/fpctl.sh`.
+Magisk and KernelSU can both install the standard ZIP. Stock Magisk does
+not expose the KernelSU WebUI bridge; use the action button and root CLI
+or a compatible third-party WebUI host.
+
+The optional Zygisk bridge is **disabled by default**, even though GitHub
+release ZIPs contain compiled four-ABI native libraries. The separate private
+`zygisk.conf` opt-in is preserved across upgrades. Enable via:
+`sh bin/fpctl.sh zygisk enable`, disable with
+`sh bin/fpctl.sh zygisk disable`, and inspect with
+`sh bin/fpctl.sh zygisk status`.
+
+Zygisk is used **only** for **runtime Java fingerprint injection**. Its
+`preAppSpecialize` reads `zygisk.conf`, `config.conf` and the chosen
+fingerprint through the module directory file descriptor. It activates only
+for an explicitly enabled module with `apply_mode=runtime`, a valid saved
+fingerprint, and a non-denylisted application UID (10,000+). In
+`postAppSpecialize`, it modifies the new app's
+`android.os.Build.FINGERPRINT` static field through JNI. No system_server
+callback or hook is registered. The Zygisk module requests unloading after
+specialization and does not maintain persistent native hooks.
+
+The native module does **not** change already-running processes, global
+native property getters, any other Build fields, cryptographic attestation,
+or Google's remote verdict. Magisk's global Zygisk setting must already be
+enabled; reboot after turning it on, and restart target apps after opting
+into FingerStore's bridge. Runtime injection is experimental and requires
+device-level verification.
+
+Native source: `zygisk/jni/fingerstore.cpp` and the official 0BSD Zygisk
+API v5 header in `zygisk/jni/zygisk.hpp`. The source build excludes
+NDK-generated binary output. Official release CI compiles native libraries for
+`armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64` and verifies each ELF's
+architecture before packaging to `zygisk/<abi>.so`.
 
 ## WebUI
 
@@ -38,7 +76,7 @@ The sample builds use recognizable Android build ID formats only to demonstrate 
 
 ## Compatibility / recovery
 
-- Requires a KernelSU-compatible module manager and appropriate `resetprop` support for live changes.
+- Requires a Magisk- or KernelSU-compatible module manager and appropriate `resetprop` support for live changes.
 - Mirroring does not invent partition properties that the ROM does not expose.
 - Reboot-time property application cannot be guaranteed on every ROM without device tests.
 - If fingerprint settings cause apps to behave incorrectly, open the WebUI and use **Restore**, then reboot. Keep a known-good ZIP and device backup.

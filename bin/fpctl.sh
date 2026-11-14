@@ -4,6 +4,7 @@ set -u
 MODDIR=${0%/*}
 MODDIR=${MODDIR%/*}
 CONFIG="$MODDIR/config.conf"
+ZYGISK_CONFIG="$MODDIR/zygisk.conf"
 ORIGINAL="$MODDIR/original.props"
 PARTS='system system_ext product vendor odm bootimage'
 PRODUCT_PARTS='system system_ext product vendor odm'
@@ -321,7 +322,42 @@ restore_originals() {
   done < "$ORIGINAL"
   return "$result"
 }
+zygisk_enabled() {
+  [ -f "$ZYGISK_CONFIG" ] && grep -qx 'enabled=1' "$ZYGISK_CONFIG"
+}
+zygisk_binaries() {
+  [ -s "$MODDIR/zygisk/arm64-v8a.so" ] ||
+  [ -s "$MODDIR/zygisk/armeabi-v7a.so" ] ||
+  [ -s "$MODDIR/zygisk/x86.so" ] ||
+  [ -s "$MODDIR/zygisk/x86_64.so" ]
+}
+set_zygisk() {
+  case "$1" in enable) opt=1 ;; disable) opt=0 ;; *) sayerr 'Usage: zygisk <enable|disable>'; return 2 ;; esac
+  if [ "$opt" = 1 ] && ! zygisk_binaries; then
+    sayerr 'No compiled Zygisk library installed; install the full release ZIP.'
+    return 3
+  fi
+  umask 077
+  temp="$MODDIR/.zygisk-config.$"
+  printf 'enabled=%s\n' "$opt" > "$temp" || { rm -f "$temp"; return 3; }
+  chmod 0600 "$temp" || { rm -f "$temp"; return 3; }
+  mv -f "$temp" "$ZYGISK_CONFIG" || { rm -f "$temp"; return 3; }
+  if [ "$opt" = 1 ]; then
+    printf '%s\n' 'Optional Zygisk enabled: only runtime mode; newly launched apps; requires Magisk Zygisk.'
+  else
+    printf '%s\n' 'Optional Zygisk disabled for new app processes. Restart existing apps or reboot.'
+  fi
+}
 case "${1:-}" in
+  zygisk)
+    case "${2:-}" in
+      enable|disable) [ "$#" -eq 2 ] || exit 2; set_zygisk "$2" ;;
+      status) [ "$#" -eq 2 ] || exit 2
+        if zygisk_enabled; then echo 'zygisk_enabled=1'; else echo 'zygisk_enabled=0'; fi
+        if zygisk_binaries; then echo 'zygisk_available=yes'; else echo 'zygisk_available=no'; fi ;;
+      *) sayerr 'Usage: zygisk <enable|disable|status>'; exit 2 ;;
+    esac
+    ;;
   set)
     case "$#" in 5|11|12) ;; *) sayerr 'Usage: set <fingerprint> <epoch> <patch-or-dash> <mirror-0-or-1> [<autofill-0-or-1> <brand> <device> <model> <product> <manufacturer>]'; exit 2 ;; esac
     valid_fp "$2" || { sayerr 'Fingerprint format invalid'; exit 2; }
@@ -419,6 +455,13 @@ case "${1:-}" in
     read_config
     printf 'enabled=%s\n' "$ENABLED"
     printf 'apply_mode=%s\n' "$APPLY_MODE"
+    if zygisk_enabled; then echo 'zygisk_enabled=1'; else echo 'zygisk_enabled=0'; fi
+    if zygisk_binaries; then echo 'zygisk_available=yes'; else echo 'zygisk_available=no'; fi
+    if zygisk_enabled && [ "$APPLY_MODE" = runtime ] && [ "$ENABLED" = 1 ] && zygisk_binaries; then
+      echo 'zygisk_ready=yes'
+    else
+      echo 'zygisk_ready=no'
+    fi
     printf 'fingerprint=%s\n' "$FP"
     printf 'epoch=%s\n' "$EPOCH"
     printf 'patch=%s\n' "$PATCH"
