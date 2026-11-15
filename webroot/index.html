@@ -420,7 +420,7 @@ function useActive(){
   $('autofill').checked=false; $('fingerprint').value=active.current_fingerprint||'';
   $('date').value=dateFromEpoch(active.current_epoch); $('patch').value=active.current_patch||''; $('partitions').checked=active.partitions==='1';
   for(const id of identityFields) $(id).value=active['current_'+id]||'';
-  updateAuto(); updateFingerprintGuide(); dirty=true; notice('Active properties copied, including the reported security patch. Apply to save your selection.');
+  updateAuto(); updateFingerprintGuide(); dirty=true; showTab('Editor'); notice('Active properties copied into Editor. Apply changes to save.');
 }
 async function refresh(loadInputs=true){setBusy(true);notice('Reading properties…');try{
  const result=await cmd(['status']); active=parse(result);cfg=active;
