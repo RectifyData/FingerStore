@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.4.5 — Authentic built-in stock fingerprints
+
+- Replace the synthetic 100-device `demo_` catalog and generated Android 8–16 strings with **100 actual stock-build profiles and 186 literal source fingerprints** from the historical MIT-licensed MagiskHide Props Config v137 `prints.sh` list.
+- Show **only recorded Android version options** for each device; reject absent versions rather than constructing plausible but fictional fingerprints. Stock fingerprint, original product/device identifiers, retail model, manufacturer, and source-reported patch are loaded together.
+- Do not invent build timestamps. Clear the date field on catalog selection and require the real matching firmware build date before applying.
+- Include provenance, source limitations and new catalog/WebUI validation tests. Historical records are not newly OEM-verified or guaranteed to pass Play Integrity.
+- Preserve Magisk, KernelSU, and disabled-by-default optional Zygisk runtime injection from v1.4.4. Still an experimental prerelease pending physical-device validation.
+
 ## v1.4.4 — Magisk compatibility and optional Zygisk
 
 - Support standard Magisk installation and boot integration, preserve existing KernelSU support and stable internal module ID.
