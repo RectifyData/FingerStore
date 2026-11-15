@@ -1,7 +1,7 @@
 id=build_fingerprint_date
 name=FingerStore
-version=1.4.6
-versionCode=146
+version=1.4.7
+versionCode=147
 author=Jay Baumforster
-description=Magisk and KernelSU build identity editor with 500+ source-backed stock device profiles from multiple sources, Android version picker, runtime/reboot modes and optional Zygisk-only runtime Build.FINGERPRINT injection (off by default).
+description=Magisk and KernelSU build identity editor with 500+ source-backed stock device profiles from multiple sources, direct catalog apply, four-tab WebUI, fingerprint-only date-preserving mode, runtime/reboot modes and optional Zygisk-only runtime Build.FINGERPRINT injection (off by default).
 updateJson=https://raw.githubusercontent.com/RectifyData/FingerStore/main/update.json
