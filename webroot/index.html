@@ -90,8 +90,8 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
   <div class="row" style="margin-top:14px"><button class="link" id="loadCurrent" type="button">Use currently active values</button><button class="link" id="refresh" type="button">Refresh state ↻</button></div>
 </section>
 <section class="card" aria-labelledby="catalogTitle">
-  <div class="row"><h2 id="catalogTitle" style="margin:0">Built-in fingerprint catalog</h2><span class="token" id="catalogCount">100 stock profiles</span></div>
-  <p class="hint"><strong class="catalog-source">Authentic stock-build strings.</strong> Exactly 100 built-in device profiles from a historical, community-curated stock fingerprint list. Versions are shown only where a real fingerprint was recorded; no Android-version strings are fabricated. These historical entries are not freshly OEM-verified and do not guarantee attestation success.</p>
+  <div class="row"><h2 id="catalogTitle" style="margin:0">Built-in fingerprint catalog</h2><span class="token" id="catalogCount">Loading profiles…</span></div>
+  <p class="hint"><strong class="catalog-source">Source-backed fingerprints.</strong> A built-in, offline catalog combining historical stock build records, community profiles and extracted Pixel OTA properties. Only recorded Android versions and exact fingerprint strings are selectable. Community submissions are not independent OEM attestation certificates.</p>
   <div class="field" style="margin-top:18px"><label for="catalogSearch">Find a device</label><input id="catalogSearch" type="search" placeholder="Search Pixel, Galaxy, OnePlus…" autocomplete="off"></div>
   <div class="two">
     <div class="field"><label for="catalogDevice">Device profile</label><select id="catalogDevice" aria-label="Stock device profile"></select></div>
@@ -100,9 +100,16 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
       <md-outlined-select id="catalogVersionM3" aria-label="Recorded Android version"></md-outlined-select>
     </div>
   </div>
+  <div class="field" style="margin-top:8px"><label for="catalogBuild">Recorded firmware build</label><select id="catalogBuild" aria-label="Recorded firmware build"></select><div class="hint" id="catalogBuildHint">Only builds found in the original source are offered.</div></div>
   <div class="notice code-note catalog-preview" id="catalogPreview" role="status" aria-live="polite">Loading stock fingerprint catalog…</div>
-  <div class="sub-actions"><button class="primary" id="catalogLoad" type="button">Use stock fingerprint</button><md-filled-button id="catalogLoadM3">Use selected demo</md-filled-button></div>
-  <p class="footnote">Selecting a profile loads the exact recorded fingerprint and known security patch date. Build timestamps are not provided by the source: enter the matching firmware build date before applying. <a href="https://github.com/Magisk-Modules-Repo/MagiskHidePropsConf/blob/master/common/prints.sh" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Historical source list</a>. Selecting does not apply changes automatically.</p>
+  <div class="sub-actions"><button class="primary" id="catalogLoad" type="button">Use stock fingerprint</button><md-filled-button id="catalogLoadM3">Use stock fingerprint</md-filled-button></div>
+  <p class="footnote">Selecting a profile loads the exact recorded build. The matching firmware date is filled only when documented by the source; otherwise you must enter it. Selecting does not apply changes automatically. A recorded fingerprint is not proof of Play Integrity or OEM certification.</p>
+</section>
+<section class="card" aria-labelledby="catalogSourcesTitle">
+  <h2 id="catalogSourcesTitle">Fingerprint data and firmware references</h2>
+  <p class="hint">Fingerprint sources and firmware discovery sources are different. A build ID or partition-specific fingerprint is never silently converted into a global device fingerprint.</p>
+  <div id="catalogSources" class="notice" role="list" style="margin-top:14px">Loading source provenance…</div>
+  <details style="margin-top:14px"><summary style="cursor:pointer">Firmware dump and Pixel image references</summary><div class="hint" id="catalogReferences" style="margin-top:12px">Loading firmware references…</div></details>
 </section>
 <section class="card" aria-labelledby="editorTitle">
   <h2 id="editorTitle">Custom build information</h2>
@@ -152,7 +159,7 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
-const elements=['apply','reset','refresh','loadCurrent','reboot','catalogLoad','catalogSearch','catalogDevice','catalogVersion','applyMode','zygiskToggle','integrityCapture','integrityCompare','integrityRefresh'];
+const elements=['apply','reset','refresh','loadCurrent','reboot','catalogLoad','catalogSearch','catalogDevice','catalogVersion','catalogBuild','applyMode','zygiskToggle','integrityCapture','integrityCompare','integrityRefresh'];
 const identityFields=['brand','device','model','name','manufacturer'];
 let autoModel=''; let lastAutofillFingerprint=null; let dirty=false;
 let active = {}, cfg = {}, moduleDir = '/data/adb/modules/build_fingerprint_date';
@@ -189,34 +196,52 @@ async function integrityOperation(op){
 }
 
 const stockCatalog=Array.isArray(window.FINGERSTORE_CATALOG)?window.FINGERSTORE_CATALOG:[];
+const catalogSources=Array.isArray(window.FINGERSTORE_CATALOG_SOURCES)?window.FINGERSTORE_CATALOG_SOURCES:[];
+const catalogReferences=Array.isArray(window.FINGERSTORE_CATALOG_REFERENCES)?window.FINGERSTORE_CATALOG_REFERENCES:[];
+const escapeHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 function currentCatalog(){return stockCatalog.find(d=>d.id===$('catalogDevice').value);}
+function catalogBuilds(record,version){
+ return typeof window.FINGERSTORE_CATALOG_BUILDS==='function'?window.FINGERSTORE_CATALOG_BUILDS(record,version):[];
+}
 function catalogBuild(record,version){
- return typeof window.FINGERSTORE_CATALOG_BUILD==='function'?window.FINGERSTORE_CATALOG_BUILD(record,version):null;
+ const id=Number($('catalogBuild').value||0);
+ return typeof window.FINGERSTORE_CATALOG_BUILD==='function'?window.FINGERSTORE_CATALOG_BUILD(record,version,id):null;
 }
 function previewCatalog(){
  const d=currentCatalog(),v=$('catalogVersion').value,b=catalogBuild(d,v);
  $('catalogPreview').textContent=d&&b
-   ? d.label+' · Android '+v+' · recorded stock build\n'+b.fingerprint+'\nSecurity patch: '+(b.patch||'not documented in source')
+   ? d.label+' · Android '+v+'\n'+b.fingerprint+'\nSecurity patch: '+(b.patch||'not documented')+
+     '\nBuild date: '+(b.date||'not documented')+'\nSources: '+(b.sources||[]).join(', ')+
+     (b.note?'\n'+b.note:'')
    : 'No recorded fingerprint for this device and Android version.';
+}
+function syncCatalogBuilds(){
+ const d=currentCatalog(),v=$('catalogVersion').value,builds=catalogBuilds(d,v),base=$('catalogBuild'),old=base.value;
+ base.innerHTML=builds.map((b,i)=>'<option value="'+i+'">'+escapeHtml(b.fingerprint.split('/').slice(-1)[0].split(':')[0])+
+   (b.patch?' · '+escapeHtml(b.patch):'')+' · '+escapeHtml((b.sources||[]).join(', '))+'</option>').join('');
+ base.value=Number.isInteger(Number(old))&&Number(old)>=0&&Number(old)<builds.length?old:(builds.length?'0':'');
+ $('catalogBuildHint').textContent=builds.length+' actual recorded build'+(builds.length===1?'':'s')+' for Android '+v+
+   '. Exact strings are preserved; no Android version templates.';
+ previewCatalog();
 }
 function syncCatalogVersions(){
  const d=currentCatalog(),base=$('catalogVersion'),old=base.value;
  const versions=d?Object.keys(d.builds):[];
- base.innerHTML=versions.map(v=>'<option value="'+v+'">Android '+v+'</option>').join('');
+ base.innerHTML=versions.map(v=>'<option value="'+escapeHtml(v)+'">Android '+escapeHtml(v)+'</option>').join('');
  const next=versions.includes(old)?old:(d?d.defaultVersion:'');
  base.value=next;
  const material=$('catalogVersionM3');
- material.innerHTML=versions.map(v=>'<md-select-option value="'+v+'"><div slot="headline">Android '+v+'</div></md-select-option>').join('');
+ material.innerHTML=versions.map(v=>'<md-select-option value="'+escapeHtml(v)+'"><div slot="headline">Android '+escapeHtml(v)+'</div></md-select-option>').join('');
  material.value=next;
- previewCatalog();
+ syncCatalogBuilds();
 }
 function filterCatalog(){
  const search=($('catalogSearch').value||'').trim().toLowerCase(),old=$('catalogDevice').value;
  const filtered=stockCatalog.filter(d=>(d.label+' '+d.model+' '+d.brand+' '+d.product+' '+d.device).toLowerCase().includes(search));
- const esc=v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
- $('catalogDevice').innerHTML=filtered.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label.replace(/ \([\d. &]+\)$/,''))+'</option>').join('');
+ $('catalogDevice').innerHTML=filtered.map(d=>'<option value="'+escapeHtml(d.id)+'">'+escapeHtml(d.label.replace(/ \([\d. &]+\)$/,''))+'</option>').join('');
  $('catalogDevice').value=filtered.some(d=>d.id===old)?old:(filtered[0]?filtered[0].id:'');
- $('catalogCount').textContent=stockCatalog.length+' stock profiles';
+ const fingerprints=stockCatalog.reduce((total,d)=>total+Object.values(d.builds).reduce((t,builds)=>t+builds.length,0),0);
+ $('catalogCount').textContent=stockCatalog.length+' devices · '+fingerprints+' builds';
  syncCatalogVersions();
 }
 function loadCatalogFingerprint(){
@@ -224,8 +249,17 @@ function loadCatalogFingerprint(){
  if(!d||!b)return notice('No documented stock build for that selection.','error');
  $('fingerprint').value=b.fingerprint;$('autofill').checked=false;
  for(const f of identityFields)$(f).value=f==='name'?d.product:f==='device'?d.device:f==='model'?d.model:f==='manufacturer'?d.manufacturer:d.brand;
- $('date').value='';$('patch').value=b.patch||'';updateAuto();dirty=true;
- notice('Stock fingerprint loaded from the historical list. Enter the genuine firmware build date (not provided by the source) before applying.');
+ $('date').value=b.date||'';$('patch').value=b.patch||'';updateAuto();dirty=true;
+ notice('Recorded fingerprint loaded. '+(b.date?'Source-provided firmware date included.':'Enter the matching firmware build date before applying.')+' Source: '+(b.sources||[]).join(', '));
+}
+function showCatalogSources(){
+ const trustedUrl=u=>/^https:\/\/(github\.com|dl\.google\.com)\//.test(u);
+ $('catalogSources').innerHTML=catalogSources.length
+   ? catalogSources.map(s=>'<div style="margin-bottom:12px" role="listitem"><a style="color:var(--primary)" target="_blank" rel="noopener noreferrer" href="'+(trustedUrl(s.url)?escapeHtml(s.url):'#')+'">'+escapeHtml(s.label)+'</a> · '+escapeHtml(s.role)+'<div class="hint">'+escapeHtml(s.quality)+' · '+Number(s.added||0)+' imported records</div></div>').join('')
+   : 'No source metadata available. Install a current release.';
+ $('catalogReferences').innerHTML=catalogReferences.length
+   ? catalogReferences.map(r=>'<div style="margin-bottom:8px"><a style="color:var(--primary)" href="'+(trustedUrl(r.url)?escapeHtml(r.url):'#')+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(r.label)+'</a> · '+escapeHtml(r.fingerprintType)+' · '+escapeHtml(r.android||'version not specified')+'</div>').join('')
+   : 'No firmware references available.';
 }
 function updateApplyMode(){
  const live=$('applyMode').value==='runtime';
@@ -374,7 +408,8 @@ async function rebootDevice(){
 }
 $('catalogSearch').addEventListener('input',filterCatalog);
 $('catalogDevice').addEventListener('change',syncCatalogVersions);
-$('catalogVersion').addEventListener('change',previewCatalog);
+$('catalogBuild').addEventListener('change',previewCatalog);
+$('catalogVersion').addEventListener('change',syncCatalogBuilds);
 $('catalogLoad').addEventListener('click',loadCatalogFingerprint);
 $('applyMode').addEventListener('change',()=>{dirty=true;updateApplyMode();});
 $('integrityCapture').addEventListener('click',()=>integrityOperation('capture'));
@@ -389,7 +424,7 @@ $('loadCurrent').addEventListener('click',useActive);
 $('autofill').addEventListener('change',()=>{dirty=true;updateAuto();});
 $('fingerprint').addEventListener('input',()=>{dirty=true;if($('autofill').checked)updateAuto();});
 for(const id of [...identityFields,'date','patch','partitions']) $(id).addEventListener('input',()=>{dirty=true;if(id==='model'||id==='name')updateFingerprintGuide();});
-filterCatalog();refresh(true);integrityOperation('report');
+showCatalogSources();filterCatalog();refresh(true);integrityOperation('report');
 </script>
 </body>
 </html>
