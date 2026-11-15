@@ -1,4 +1,4 @@
-# FingerStore v1.4.5 — Technical reference
+# FingerStore v1.4.6 — Technical reference
 
 ## Scope
 
@@ -48,7 +48,7 @@ architecture before packaging to `zygisk/<abi>.so`.
 
 `webroot/index.html` contains the mobile-first editor with Google Sans Flex and Material 3 theme tokens. Material Web components for the catalog use an optional import-map/CDN loading path. When network access or custom elements are unavailable, native controls remain usable with Material 3 styling.
 
-`webroot/catalog.js` contains 100 built-in stock profiles and 186 literal fingerprints transcribed from the MIT-licensed MagiskHide Props Config v137 `common/prints.sh` list. Fingerprint strings are never synthesized or altered by a version template. Each record lists only Android version strings actually present in the source and includes exact brand/product/device fields, the upstream retail model and manufacturer, and optional source-reported patch. The historical list is not individually reverified by FingerStore; see [catalog provenance](CATALOG_SOURCES.md).
+`webroot/catalog.js` is a generated offline database containing **524 device profiles and 839 exact source fingerprint strings** in the first v1.4.6 snapshot, including Android 13–17 records. It consolidates the entire historical MagiskHide Props Config list, DeviceAnon and OTA-derived Pixel-Props release assets; records list only the Android versions actually found in source data and preserve multiple firmware builds per version. The WebUI exposes a version selector and exact build selector with provenance. ChkDumps dumps and Google's Android Flash Index are integrated as **firmware references**, but partition-only fingerprints and bare build IDs are not turned into spoofable device profiles. See [source provenance](CATALOG_SOURCES.md) and [the refresh importer](../scripts/refresh_catalog.py).
 
 ## Save and apply modes
 
