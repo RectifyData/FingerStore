@@ -26,12 +26,11 @@ reset_cmd() {
 # Validated key/value only. Avoid triggering Android init on ro.* changes.
 putprop() { "$RESETPROP" -n "$1" "$2" >/dev/null 2>&1; }
 valid_fp() {
-  case "$1" in
-    ''|*[!a-zA-Z0-9_./:\-]* ) return 1 ;;
-  esac
+  # The stock incremental field may contain parentheses (Huawei/Honor).
+  # Only the strict full-string regex below admits them, not shell syntax.
   [ "${#1}" -le 240 ] && [ "${#1}" -ge 16 ] || return 1
   # Form recommended by Android builds: brand/product/device:release/id/incremental:type/tags
-  printf '%s\n' "$1" | grep -Eq '^[[:alnum:]_.-]+/[[:alnum:]_.-]+/[[:alnum:]_.-]+:[[:alnum:]_.-]+/[[:alnum:]_.-]+/[[:alnum:]_.-]+:(user|userdebug|eng)/[[:alnum:]_.-]+$'
+  printf '%s\n' "$1" | grep -Eq '^[[:alnum:]_.-]+/[[:alnum:]_.-]+/[[:alnum:]_.-]+:[[:alnum:]_.-]+/[[:alnum:]_.-]+/[[:alnum:]_.()-]+:(user|userdebug|eng)/[[:alnum:]_.-]+$'
 }
 # Android's /system/bin/sh (mksh) can have 32-bit integer arithmetic.
 # The old comparison against 4102444800 overflowed on some devices and
