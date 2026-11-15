@@ -172,14 +172,22 @@ class Catalog:
                      patch=d.get("security_patch", ""), origin=SOURCE_LINKS[1]["url"],
                      note="community seed fingerprint, independently verify if required")
 
-    def import_pixelprops(self, max_releases=3):
-        releases = read_json(API + "/repos/Pixel-Props/build.prop/releases?per_page=30")
+    def import_pixelprops(self, max_releases=0):
+        # All published OTA property packages, including A13/A14/A15/A16/A17
+        # history, not just the three newest Android 17 collections.
+        releases = read_json(API + "/repos/Pixel-Props/build.prop/releases?per_page=100")
         success = 0
-        selected = releases[:max_releases]
+        selected = releases[:max_releases] if max_releases > 0 else releases
+        visited_assets = set()
         for rel in selected:
             for asset in rel.get("assets", []):
                 if not asset.get("name", "").lower().endswith(".zip"): continue
                 if asset.get("size", 0) > 250_000: continue
+                # Identical firmware package names are republished across
+                # release tags; use the newest source URL for each name.
+                name_key = asset["name"].lower()
+                if name_key in visited_assets: continue
+                visited_assets.add(name_key)
                 try:
                     data = read(asset["browser_download_url"], limit=300_000)
                     with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -326,7 +334,7 @@ root.FINGERSTORE_CATALOG_SOURCE=sources[0].url;
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--output", default=str(ROOT / "webroot/catalog.js"))
-    ap.add_argument("--pixel-releases", type=int, default=3)
+    ap.add_argument("--pixel-releases", type=int, default=0, help="0 imports all Pixel-Props release assets, else cap release collections")
     ap.add_argument("--skip-pixel", action="store_true", help="development only; disables OTA-import coverage")
     args = ap.parse_args()
     catalog = Catalog()
