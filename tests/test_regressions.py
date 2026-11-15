@@ -59,6 +59,10 @@ for shell in ('sh','bash','busybox ash'):
    r=run(m,env,'set',FP_A,sec,'-','0',sh=shell)
    assert r.returncode==2,(shell,sec,r.stderr)
    assert (m/'config.conf').read_text()==oldcfg
+  # Real Huawei/Honor stock incrementals can include parentheses.
+  stock_huawei='HONOR/BLN-AL10/HWBLN-H:8.0.0/HONORBLN-AL10/528(C00):user/release-keys'
+  r=run(m,env,'set',stock_huawei,'1704067200','-','0',sh=shell)
+  assert r.returncode==0,(shell,'parentheses in stock build incremental',r.stderr)
   # Same date must validate independently of local timezone, including leap days.
   for tz in ('Pacific/Auckland','Asia/Kolkata','America/Sao_Paulo','UTC'):
    env['TZ']=tz
@@ -102,7 +106,7 @@ print('PASS failure injection: unreadable rollback journal blocks property chang
 
 # Packaging checks can also be run before the ZIP is built.
 assert (SRC/'module.prop').exists()
-assert 'version=1.4.5' in (SRC/'module.prop').read_text()
+assert 'version=1.4.6' in (SRC/'module.prop').read_text()
 for f in ('service.sh','boot-completed.sh','action.sh','customize.sh','bin/fpctl.sh'):
  assert (SRC/f).read_bytes().startswith(b'#!/system/bin/sh')
 print('PASS source: installer and lifecycle entry points')
