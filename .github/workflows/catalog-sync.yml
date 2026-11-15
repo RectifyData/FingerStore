@@ -32,5 +32,6 @@ jobs:
           git add webroot/catalog.js
           if ! git diff --cached --quiet; then
             git commit -m 'Update offline fingerprint snapshot from attributed upstream sources'
+            git pull --rebase origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
