@@ -102,7 +102,7 @@ print('PASS failure injection: unreadable rollback journal blocks property chang
 
 # Packaging checks can also be run before the ZIP is built.
 assert (SRC/'module.prop').exists()
-assert 'version=1.4.4' in (SRC/'module.prop').read_text()
+assert 'version=1.4.5' in (SRC/'module.prop').read_text()
 for f in ('service.sh','boot-completed.sh','action.sh','customize.sh','bin/fpctl.sh'):
  assert (SRC/f).read_bytes().startswith(b'#!/system/bin/sh')
 print('PASS source: installer and lifecycle entry points')
