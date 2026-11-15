@@ -2,7 +2,7 @@
 
 ## v1.4.6 — Multi-source stock fingerprint database
 
-- Expand from 100 devices / 186 builds to a checked-in **524-device, 839-fingerprint** offline snapshot with Android 13–17 records. Import the full historical MagiskHide Props Config collection, community DeviceAnon records, and exact OTA-extracted Pixel-Props property values.
+- Expand from 100 devices / 186 builds to a checked-in **524-device, 1,098-entry** offline snapshot with Android 13–17 records. Import the full historical MagiskHide Props Config collection, community DeviceAnon records, and exact OTA-extracted Pixel-Props property values, including 328 imported Pixel records from all 52 available historical release collections.
 - Support multiple **real firmware builds per Android version** and choose each exact fingerprint instead of generating synthetic Android/build IDs. Preserve source, original asset URL, known patch and real build date.
 - Integrate ChkDumps dump inspections and Google Android Flash Index as **firmware-discovery sources**, without treating partition-only fingerprints or image metadata as verified global device fingerprints.
 - Add a source-aware import/refresh script and GitHub Actions snapshot workflow; maintain offline operation and source attribution. Improve import support for valid Huawei/Honor incremental IDs containing parentheses.
