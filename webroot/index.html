@@ -13,7 +13,6 @@
   try {
     await import('@material/web/select/outlined-select.js');
     await import('@material/web/select/select-option.js');
-    await import('@material/web/button/filled-button.js');
     const base=document.getElementById('catalogVersion');
     const material=document.getElementById('catalogVersionM3');
     material.value=base.value;
@@ -22,7 +21,6 @@
       base.dispatchEvent(new Event('change',{bubbles:true}));
     });
     base.addEventListener('change',()=>{material.value=base.value;});
-    document.getElementById('catalogLoadM3').addEventListener('click',()=>document.getElementById('catalogLoad').click());
     document.body.classList.add('m3-ready');
   } catch (_) { /* Network is optional: native Material 3 controls remain. */ }
 </script>
@@ -31,10 +29,10 @@
 --md-sys-color-primary:var(--primary);--md-sys-color-on-primary:#182956;--md-sys-color-surface:var(--card);--md-sys-color-on-surface:var(--ink);--md-sys-color-outline:var(--border);--md-sys-typescale-body-large-font:"Google Sans Flex",Roboto,sans-serif}
 @media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f7f8ff;--card:#fff;--card2:#edf0fa;--ink:#171b2a;--sub:#5e657a;--border:#c9cfde;--primary:#415ba9;--good:#13664f;--warn:#925e08;--shadow:0 10px 32px #1b2f5222;--md-sys-color-on-primary:#fff}}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Google Sans Flex","Google Sans",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-body{padding:26px 18px calc(150px + env(safe-area-inset-bottom,0px))}
-main{max-width:780px;margin:auto}h1{font-size:32px;letter-spacing:-.85px;line-height:1.15;margin:14px 0 10px;font-weight:720}h2{font-size:17px;letter-spacing:0;margin:0 0 15px;font-weight:680}
-p{color:var(--sub);line-height:1.5;margin:0}.eyebrow{font-size:12px;letter-spacing:.15em;font-weight:750;color:var(--primary);text-transform:uppercase}
-.lead{font-size:14px;max-width:640px}.card{border-radius:28px;background:var(--card);padding:24px;margin-top:19px;border:1px solid var(--border)}
+body{padding:12px 16px calc(100px + env(safe-area-inset-bottom,0px))}
+main{max-width:780px;margin:auto}h1{font-size:24px;letter-spacing:-.5px;line-height:1.2;margin:0;font-weight:700}h2{font-size:17px;letter-spacing:0;margin:0 0 15px;font-weight:680}
+p{color:var(--sub);line-height:1.5;margin:0}.eyebrow{display:none}
+.lead{font-size:14px;max-width:640px}.card{border-radius:20px;background:var(--card);padding:22px;margin-top:14px;border:1px solid var(--border)}
 .status{display:flex;align-items:center;gap:11px;flex-wrap:wrap}.dot{height:10px;width:10px;border-radius:50%;background:var(--sub)}.dot.on{background:var(--good)}
 .hint{font-size:12px;color:var(--sub);margin-top:8px}.statusline{margin-top:15px;font-size:13px;overflow-wrap:anywhere}
 .token{display:inline-flex;border-radius:999px;align-items:center;padding:6px 12px;background:var(--card2);color:var(--sub);font-size:12px;font-weight:680}
@@ -48,11 +46,11 @@ input[type=date]{min-height:49px}.two{display:grid;grid-template-columns:1fr 1fr
 .switchrow{display:flex;justify-content:space-between;gap:12px;align-items:center}.switchrow input{width:20px;height:20px;accent-color:var(--primary)}
 .switchrow strong{font-size:13px}.switchrow p{font-size:12px;margin-top:5px}
 .footnote{font-size:12px;padding:15px 0 0}
-.actions{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;width:min(calc(100% - 28px),650px);padding:10px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow);border-radius:26px;display:flex;gap:9px;align-items:center;backdrop-filter:blur(24px)}
+.actions{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;width:min(calc(100% - 28px),650px);padding:10px;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow);border-radius:26px;display:flex;gap:9px;align-items:center;backdrop-filter:blur(24px)}
 button{border:0;border-radius:999px;padding:13px 18px;font:inherit;font-size:13px;font-weight:720;cursor:pointer;min-height:44px}
 button:disabled{opacity:.5;cursor:wait}.primary{background:var(--primary);color:var(--bg);flex:1}.neutral{background:var(--card2);color:var(--ink)}.danger{background:var(--card2);color:#ec929a}
 .link{border:0;background:transparent;padding:6px 0;color:var(--primary);min-height:0;font-size:12px}
-.notice{font-size:12px;line-height:1.55;border-radius:18px;background:var(--card2);padding:13px 15px;margin-top:16px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere}
+.notice{font-size:12px;line-height:1.45;border-radius:12px;background:var(--card2);padding:13px 15px;margin-top:16px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere}
 .notice.error{color:#f5a3ae}.notice.success{color:var(--good)}
 .current{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-word;line-height:1.6;margin:7px 0 0;color:var(--sub)}
 .actions .neutral{flex:0 0 auto}.sub-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.sub-actions button{flex:1 1 auto}
@@ -60,39 +58,46 @@ button:disabled{opacity:.5;cursor:wait}.primary{background:var(--primary);color:
 .auto-switch{border-radius:19px;background:var(--card2);padding:14px;margin-top:4px}.identity-grid .field{margin-bottom:5px}.identity-grid{margin-bottom:18px}
 .reboot{white-space:nowrap}.field input[readonly]{opacity:.8;cursor:default;border-style:dashed}
 .catalog-source{color:var(--sub);font-weight:690}.catalog-preview{min-height:50px;font-size:11px}
-#catalogVersionM3,#catalogLoadM3{display:none;width:100%}
+#catalogVersionM3{display:none;width:100%}
 body.m3-ready #catalogVersion{display:none}body.m3-ready #catalogVersionM3{display:block}
-body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:block}
-#catalogLoadM3{--md-filled-button-container-color:var(--primary);--md-filled-button-label-text-color:var(--bg)}
 @media(max-width:500px){.card{padding:18px}.two{grid-template-columns:1fr}.actions{gap:6px}.actions button{padding:12px 13px}h1{font-size:28px}}
 @media(max-width:420px){.actions button{padding:11px 9px;font-size:12px}.actions{width:calc(100% - 20px)}}
+
+/* One feature per tab: no stacked dashboard on mobile. */
+.app-header{max-width:780px;display:flex;gap:14px;align-items:center;justify-content:space-between;margin:8px 0 18px}
+.ready{font-size:12px;color:var(--sub);max-width:55%;overflow-wrap:anywhere;text-align:right}
+.tab-strip{display:flex;gap:6px;position:sticky;top:0;z-index:9;padding:5px;margin-bottom:10px;background:var(--bg);border-bottom:1px solid var(--border)}
+.tab{min-height:44px;flex:1;border-radius:12px;background:transparent;color:var(--sub);padding:9px;font-weight:650}
+.tab.active,.tab[aria-selected=true]{background:var(--card2);color:var(--ink)}
+.tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tab-panel[hidden],.actions[hidden],.actions button[hidden]{display:none!important}
+.tab-panel .card:first-child{margin-top:8px}
+.advanced{border-top:1px solid var(--border);margin-top:17px;padding-top:14px}
+.advanced summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--ink);padding:6px 0}
+.advanced[open]>summary{margin-bottom:14px}
+.advanced .card{margin-top:14px}
+#catalogApply{flex:2}
+#catalogLoad{flex:1}
+#catalogPreview{margin-top:8px;line-height:1.5;min-height:0}
+#catalogCount{font-weight:550}
+#catalogDateHint{margin-top:10px}
+#panelStatus .statusline,#panelStatus .hint{font-size:12px}
+@media(max-width:540px){.app-header{margin-top:3px}.tab{font-size:13px}.card{padding:17px}.two{grid-template-columns:1fr}.sub-actions{gap:8px}.actions{width:calc(100% - 24px)}}
 </style>
 </head>
 <body>
 <main>
-<div class="eyebrow">Magisk · KernelSU · Systemless</div>
-<h1>FingerStore</h1>
-<p class="lead">Edit the Android build fingerprint, device identity and dates. Settings persist across restarts until you change or restore them.</p>
-<section class="card" aria-labelledby="statusTitle">
-  <div class="row"><h2 id="statusTitle" style="margin:0">Current state</h2><span class="token" id="ready">Connecting…</span></div>
-  <div class="status" style="margin-top:17px"><span class="dot" id="dot"></span><strong id="statusText">Checking module…</strong></div>
-  <div class="statusline"><span class="hint">Persistence</span><div class="current" id="persistence">Checking…</div></div>
-  <div class="statusline"><span class="hint">Active build fingerprint</span><div class="current" id="currentFp">—</div></div>
-  <div class="statusline"><span class="hint">Active build timestamp (UTC)</span><div class="current" id="currentDate">—</div></div>
-  <div class="statusline"><span class="hint">Active security patch</span><div class="current" id="currentPatch">—</div></div>
-  <div class="notice" id="propertyCheck" role="status" aria-live="polite">Checking saved and active build properties…</div>
-  <div class="two" style="margin-top:14px">
-    <div class="statusline"><span class="hint">Brand</span><div class="current" id="currentBrand">—</div></div>
-    <div class="statusline"><span class="hint">Device</span><div class="current" id="currentDevice">—</div></div>
-    <div class="statusline"><span class="hint">Model · Build.MODEL</span><div class="current" id="currentModel">—</div></div>
-    <div class="statusline"><span class="hint">Product code · Build.PRODUCT</span><div class="current" id="currentName">—</div></div>
-  </div>
-  <div class="row" style="margin-top:14px"><button class="link" id="loadCurrent" type="button">Use currently active values</button><button class="link" id="refresh" type="button">Refresh state ↻</button></div>
-</section>
-<section class="card" aria-labelledby="catalogTitle">
-  <div class="row"><h2 id="catalogTitle" style="margin:0">Built-in fingerprint catalog</h2><span class="token" id="catalogCount">Loading profiles…</span></div>
-  <p class="hint"><strong class="catalog-source">Source-backed fingerprints.</strong> A built-in, offline catalog combining historical stock build records, community profiles and extracted Pixel OTA properties. Only recorded Android versions and exact fingerprint strings are selectable. Community submissions are not independent OEM attestation certificates.</p>
-  <div class="field" style="margin-top:18px"><label for="catalogSearch">Find a device</label><input id="catalogSearch" type="search" placeholder="Search Pixel, Galaxy, OnePlus…" autocomplete="off"></div>
+  <header class="app-header"><h1>FingerStore</h1><span class="ready" id="ready" role="status" aria-live="polite">Connecting…</span></header>
+  <nav class="tab-strip" role="tablist" aria-label="FingerStore features">
+    <button class="tab active" role="tab" id="tabCatalog" aria-controls="panelCatalog" aria-selected="true" tabindex="0" type="button">Catalog</button>
+    <button class="tab" role="tab" id="tabEditor" aria-controls="panelEditor" aria-selected="false" tabindex="-1" type="button">Editor</button>
+    <button class="tab" role="tab" id="tabStatus" aria-controls="panelStatus" aria-selected="false" tabindex="-1" type="button">Status</button>
+    <button class="tab" role="tab" id="tabTools" aria-controls="panelTools" aria-selected="false" tabindex="-1" type="button">Tools</button>
+  </nav>
+  <div id="panelCatalog" role="tabpanel" class="tab-panel" aria-labelledby="tabCatalog"><section class="card" aria-labelledby="catalogTitle">
+  <div class="row"><h2 id="catalogTitle" style="margin:0">Fingerprint catalog</h2><span class="token" id="catalogCount">Loading profiles…</span></div>
+  <p class="hint">Select a stock fingerprint. Only recorded builds are listed.</p>
+  <div class="field" style="margin-top:18px"><label for="catalogSearch">Search devices</label><input id="catalogSearch" type="search" placeholder="Search Pixel, Galaxy, OnePlus…" autocomplete="off"></div>
   <div class="two">
     <div class="field"><label for="catalogDevice">Device profile</label><select id="catalogDevice" aria-label="Stock device profile"></select></div>
     <div class="field"><label for="catalogVersion">Recorded Android version</label>
@@ -100,20 +105,27 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
       <md-outlined-select id="catalogVersionM3" aria-label="Recorded Android version"></md-outlined-select>
     </div>
   </div>
-  <div class="field" style="margin-top:8px"><label for="catalogBuild">Recorded firmware build</label><select id="catalogBuild" aria-label="Recorded firmware build"></select><div class="hint" id="catalogBuildHint">Only builds found in the original source are offered.</div></div>
+  <div class="field"><label for="catalogBuild">Firmware build</label><select id="catalogBuild" aria-label="Recorded firmware build"></select><div class="hint" id="catalogBuildHint"></div></div>
   <div class="notice code-note catalog-preview" id="catalogPreview" role="status" aria-live="polite">Loading stock fingerprint catalog…</div>
-  <div class="sub-actions"><button class="primary" id="catalogLoad" type="button">Use stock fingerprint</button><md-filled-button id="catalogLoadM3">Use stock fingerprint</md-filled-button></div>
-  <p class="footnote">Selecting a profile loads the exact recorded build. The matching firmware date is filled only when documented by the source; otherwise you must enter it. Selecting does not apply changes automatically. A recorded fingerprint is not proof of Play Integrity or OEM certification.</p>
-</section>
-<section class="card" aria-labelledby="catalogSourcesTitle">
-  <h2 id="catalogSourcesTitle">Fingerprint data and firmware references</h2>
-  <p class="hint">Fingerprint sources and firmware discovery sources are different. A build ID or partition-specific fingerprint is never silently converted into a global device fingerprint.</p>
-  <div id="catalogSources" class="notice" role="list" style="margin-top:14px">Loading source provenance…</div>
-  <details style="margin-top:14px"><summary style="cursor:pointer">Firmware dump and Pixel image references</summary><div class="hint" id="catalogReferences" style="margin-top:12px">Loading firmware references…</div></details>
-</section>
-<section class="card" aria-labelledby="editorTitle">
-  <h2 id="editorTitle">Custom build information</h2>
+  <div class="field"><label for="catalogApplyMode">Apply mode</label><select id="catalogApplyMode" aria-label="Catalog apply mode">
+      <option value="reboot" selected>After reboot (recommended)</option><option value="runtime">Now (unstable)</option>
+    </select></div>
+  <div class="sub-actions"><button class="primary" id="catalogApply" type="button">Apply selected</button><button class="neutral" id="catalogLoad" type="button">Edit details</button></div>
+  <div class="hint" id="catalogDateHint">If the firmware date is unknown, your current device build date is left unchanged.</div>
+  
+</section></div>
+  <div id="panelEditor" role="tabpanel" class="tab-panel" aria-labelledby="tabEditor" hidden><section class="card" aria-labelledby="editorTitle">
+  <h2 id="editorTitle">Custom fingerprint</h2>
   <div class="field"><label for="fingerprint">Build fingerprint</label><textarea id="fingerprint" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="brand/product/device:version/build-id/incremental:user/release-keys"></textarea><div class="hint">Paste a complete, genuine Android build fingerprint. Keep it compatible with your ROM.</div></div>
+  <div class="two">
+    <div class="field"><label for="date">Build date (UTC)</label><input id="date" type="date" min="2000-01-01" max="2100-01-01"><div class="hint">Optional. Blank keeps the existing device build date.</div></div>
+    <div class="field"><label for="patch">Security patch level (optional)</label><input id="patch" placeholder="YYYY-MM-DD" inputmode="numeric" maxlength="10"><div class="hint">Leave blank to leave this property untouched</div></div>
+  </div>
+  <div class="field" style="margin-top:18px"><label for="applyMode">When to apply</label>
+    <select id="applyMode"><option value="reboot" selected>After reboot · recommended</option><option value="runtime">At runtime · UNSTABLE</option></select>
+    <div class="notice" id="applyModeWarning" role="status">Saved for your next reboot.</div>
+  </div>
+  <details class="advanced"><summary>Device identity and advanced options</summary>
   <div class="switchrow auto-switch" style="margin-bottom:17px">
     <div><strong>Auto-fill identity from fingerprint</strong><p>Off by default. Brand, product and device come from the fingerprint; model is inferred only when recognized.</p></div>
     <input type="checkbox" id="autofill" aria-label="Auto-fill device identity from build fingerprint">
@@ -125,36 +137,51 @@ body.m3-ready #catalogLoad{display:none}body.m3-ready #catalogLoadM3{display:blo
     <div class="field"><label for="name">Product code · ro.product.name</label><input id="name" maxlength="90" autocomplete="off" spellcheck="false" placeholder="r13sxxx"><div class="hint">Second segment of the fingerprint (brand/product/device:…). Do not put the model number here.</div></div>
     <div class="field"><label for="manufacturer">Manufacturer</label><input id="manufacturer" maxlength="90" autocomplete="off" spellcheck="false" placeholder="samsung"></div>
   </div>
-  <div class="two">
-    <div class="field"><label for="date">Build date (UTC)</label><input id="date" type="date" min="2000-01-01" max="2100-01-01"><div class="hint">Controls ro.build.date and ro.build.date.utc</div></div>
-    <div class="field"><label for="patch">Security patch level (optional)</label><input id="patch" placeholder="YYYY-MM-DD" inputmode="numeric" maxlength="10"><div class="hint">Leave blank to leave this property untouched</div></div>
-  </div>
   <div class="switchrow" style="margin-top:8px"><div><strong>Mirror existing partition build and product values</strong><p>Advanced: build properties in system, product, vendor, system_ext, odm and bootimage, plus existing product identity variants.</p></div><input type="checkbox" id="partitions" aria-label="Mirror existing partition build values"></div>
-  <div class="field" style="margin-top:18px"><label for="applyMode">When to apply</label>
-    <select id="applyMode"><option value="reboot" selected>After reboot · recommended</option><option value="runtime">At runtime · UNSTABLE</option></select>
-    <div class="notice" id="applyModeWarning" role="status">Recommended: save now and apply on startup.</div>
-  </div>
   <div class="notice" id="fingerprintGuide">Fingerprint layout: brand / product code / device codename : Android version / build ID / incremental : build type / tags. Model is a separate property.</div>
   <div class="notice">Build properties only. Google generates the Play Integrity verdict labels and test ID; they cannot be edited here. Changing build properties cannot guarantee Play Integrity or hardware attestation.</div>
-</section>
-<p class="footnote"><strong>Runtime changes are unstable.</strong> Already-running apps can cache older values, and other modules or services can overwrite them. Runtime changes persist across reboots. After-reboot mode saves without editing active properties. Neither mode changes hardware identity.</p>
-
-<section class="card" aria-labelledby="zygiskTitle">
-  <div class="row"><h2 id="zygiskTitle" style="margin:0">Optional Zygisk fingerprint injection</h2><span class="token" id="zygiskBadge">Off by default</span></div>
-  <p class="hint">When explicitly enabled, this optional bridge updates only Java <code>Build.FINGERPRINT</code> for newly launched app processes in <strong>At runtime</strong> mode. Requires Magisk Zygisk. Normal Magisk and KernelSU functionality works without it.</p>
+  </details>
+</section></div>
+  <div id="panelStatus" role="tabpanel" class="tab-panel" aria-labelledby="tabStatus" hidden><section class="card" aria-labelledby="statusTitle">
+  <div class="row"><h2 id="statusTitle" style="margin:0">Current state</h2></div>
+  <div class="status" style="margin-top:17px"><span class="dot" id="dot"></span><strong id="statusText">Checking module…</strong></div>
+  <div class="hint" id="persistence">Checking…</div>
+  <div class="statusline"><span class="hint">Active build fingerprint</span><div class="current" id="currentFp">—</div></div>
+  <details class="advanced"><summary>Full device identity</summary><div class="statusline"><span class="hint">Active build timestamp (UTC)</span><div class="current" id="currentDate">—</div></div>
+  <div class="statusline"><span class="hint">Active security patch</span><div class="current" id="currentPatch">—</div></div>
+  <div class="notice" id="propertyCheck" role="status" aria-live="polite">Checking saved and active build properties…</div>
+  <div class="two" style="margin-top:14px">
+    <div class="statusline"><span class="hint">Brand</span><div class="current" id="currentBrand">—</div></div>
+    <div class="statusline"><span class="hint">Device</span><div class="current" id="currentDevice">—</div></div>
+    <div class="statusline"><span class="hint">Model · Build.MODEL</span><div class="current" id="currentModel">—</div></div>
+    <div class="statusline"><span class="hint">Product code · Build.PRODUCT</span><div class="current" id="currentName">—</div></div>
+  </div>
+  </details>
+  <div class="row" style="margin-top:14px"><button class="link" id="loadCurrent" type="button">Use currently active values</button><button class="link" id="refresh" type="button">Refresh state ↻</button></div>
+</section></div>
+  <div id="panelTools" role="tabpanel" class="tab-panel" aria-labelledby="tabTools" hidden><section class="card" aria-labelledby="zygiskTitle">
+  <div class="row"><h2 id="zygiskTitle" style="margin:0">Optional Zygisk</h2><span class="token" id="zygiskBadge">Off by default</span></div>
+  <p class="hint">Optional runtime-only Java fingerprint injection into newly launched apps. Requires Magisk Zygisk.</p>
   <div class="notice" id="zygiskStatus" role="status" aria-live="polite">Checking optional runtime bridge…</div>
   <div class="sub-actions"><button class="neutral" id="zygiskToggle" type="button">Enable optional Zygisk</button></div>
-  <p class="footnote">It does not affect system_server, other identity fields, or already-running apps. Enable Zygisk in Magisk settings and reboot once, then restart target apps. If it misbehaves, disable it and restart affected apps.</p>
+  <details class="advanced"><summary>How it works</summary><p class="hint">It does not affect system_server, native property APIs or already-running apps. Turn on Zygisk in Magisk settings, reboot, then restart target apps.</p></details>
 </section>
-<section class="card" aria-labelledby="integrityTitle">
-  <div class="row"><h2 id="integrityTitle" style="margin:0">Integrity stability diagnostics</h2><span class="token">Read-only</span></div>
-  <p class="hint">When Play Integrity passes, capture a baseline. If labels disappear later, compare locally readable build identity and security patch properties. This cannot read or change Google's server-side verdict, establish hardware attestation, or retrieve private information.</p>
+  <section class="card" aria-labelledby="integrityTitle">
+  <div class="row"><h2 id="integrityTitle" style="margin:0">Local diagnostics</h2><span class="token">Read-only</span></div>
+  <p class="hint">Compare local build properties. This cannot verify Play Integrity or hardware attestation.</p>
   <div class="sub-actions"><button class="neutral" type="button" id="integrityCapture">Capture passing baseline</button><button class="primary" type="button" id="integrityCompare">Compare after failure</button><button class="neutral" type="button" id="integrityRefresh">Refresh diagnostics</button></div>
   <div class="notice code-note" id="integrityStatus" role="status" aria-live="polite">Checking local integrity signals…</div>
-  <p class="footnote">Local property reports cannot validate device attestation. On Android 13+, Strong Integrity also requires device integrity and recent security updates to real partitions. This checker never reads app IDs or credentials.</p>
+  
 </section>
+  <details class="advanced sources-details"><summary>Data sources and firmware links</summary><section class="card" aria-labelledby="catalogSourcesTitle">
+  <h2 id="catalogSourcesTitle">Fingerprint sources</h2>
+  <p class="hint">The catalog contains exact recorded fingerprints; firmware-only links are references.</p>
+  <div id="catalogSources" class="notice" role="list" style="margin-top:14px">Loading source provenance…</div>
+  <details style="margin-top:14px"><summary style="cursor:pointer">Firmware dump and Pixel image references</summary><div class="hint" id="catalogReferences" style="margin-top:12px">Loading firmware references…</div></details>
+</section></details>
+  </div>
 </main>
-<div class="actions" role="group" aria-label="Module actions"><button class="neutral" id="reset" type="button">Restore</button><button class="primary" id="apply" type="button">Apply changes</button><button class="neutral reboot" id="reboot" type="button" title="Reboot Android to reload properties" aria-label="Reboot Android">↻ Reboot</button></div>
+<div class="actions" id="moduleActions" role="group" aria-label="Module actions" hidden><button class="neutral" id="reset" type="button">Restore</button><button class="primary" id="apply" type="button">Apply changes</button><button class="neutral reboot" id="reboot" type="button" title="Reboot Android to reload properties" aria-label="Reboot Android">↻ Reboot</button></div>
 <script src="catalog.js"></script>
 <script>
 'use strict';
