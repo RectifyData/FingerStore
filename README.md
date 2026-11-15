@@ -1,15 +1,19 @@
 # FingerStore
 
-**FingerStore v1.4.4** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
+**FingerStore v1.4.5** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
 
 ## Core features
 
 - Edit Android build fingerprint, build timestamp, reported security-patch property, brand, device, retail model, product name and manufacturer.
 - Choose **After reboot (recommended)** to stage changes for startup, or **At runtime (unstable)** to apply immediately with root `resetprop -n`. Running apps may retain cached identity, and competing modules can override runtime values.
 - Opt-in partition identity mirroring, fingerprint-to-identity autofill and a Restore action.
-- Exactly **100 synthetic demonstration device profiles** with Android version templates for 8–16. These are illustrations, not genuine or verified firmware fingerprints. Changing the version does not imply the device supports that Android release.
+- Exactly **100 built-in profiles containing 186 recorded stock firmware fingerprints**, copied unchanged from the historical MagiskHide Props Config v137 list (community-curated and described upstream as certified). **No generated or fabricated fingerprints.** The Android picker only offers the actual OS versions recorded for each model. The included builds are historical (currently Android 7.1–12), not independently reverified against OEM firmware or current Play Integrity rules.
 - Mobile-first WebUI using Google Sans Flex and Material 3 styling, with optional Material Web controls and a native offline fallback. The WebUI is available in compatible module managers; stock Magisk does not provide KernelSU's WebUI bridge.
 - Local read-only property stability diagnostics.
+
+## Built-in stock fingerprints
+
+Select **Built-in fingerprint catalog**, search for a device, and choose one of the Android releases that has an actual recorded stock fingerprint. Selecting a profile fills the exact fingerprint and matching device identity, and sets a source-provided security patch when available. The original list does **not** provide build timestamps, so FingerStore leaves the date blank rather than inventing one: enter the true matching firmware date before applying. Stock fingerprints are historical references, not guarantees of compatibility with a custom ROM or attestation.
 
 ## Magisk support
 
@@ -88,10 +92,11 @@ python3 tests/test_release.py
 
 A source-only module ZIP without native binaries can also be built with `python3 scripts/build.py`, but it cannot enable the optional Zygisk feature. GitHub Actions always compiles, validates and packages all four ABIs for official release assets.
 
-All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.4 installable asset name is `build_fingerprint_date-144-1.4.4.zip`; the release also provides full source and SHA256 checksums.
+All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.5 installable asset name is `build_fingerprint_date-144-1.4.4.zip`; the release also provides full source and SHA256 checksums.
 
 ## References
 
+- [Catalog provenance, authenticity limits and source](docs/CATALOG_SOURCES.md)
 - [Technical reference](docs/TECHNICAL.md)
 - [Release and publishing instructions](docs/PUBLISHING.md)
 - [Optional Zygisk module source](zygisk/README.md)
