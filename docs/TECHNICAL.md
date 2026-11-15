@@ -1,4 +1,4 @@
-# FingerStore v1.4.4 — Technical reference
+# FingerStore v1.4.5 — Technical reference
 
 ## Scope
 
@@ -48,7 +48,7 @@ architecture before packaging to `zygisk/<abi>.so`.
 
 `webroot/index.html` contains the mobile-first editor with Google Sans Flex and Material 3 theme tokens. Material Web components for the catalog use an optional import-map/CDN loading path. When network access or custom elements are unavailable, native controls remain usable with Material 3 styling.
 
-`webroot/catalog.js` defines 100 fixed demo devices, their synthetic identity slugs and deterministic example fingerprint generator. Each device has one Android 14 baseline example. Android 8–16 choices generate a version-specific fingerprint on demand, without adding catalog records. All outputs use `demo_` product and device fields and `DEMO` incremental tags. They are not copied from manufacturer firmware.
+`webroot/catalog.js` contains 100 built-in stock profiles and 186 literal fingerprints transcribed from the MIT-licensed MagiskHide Props Config v137 `common/prints.sh` list. Fingerprint strings are never synthesized or altered by a version template. Each record lists only Android version strings actually present in the source and includes exact brand/product/device fields, the upstream retail model and manufacturer, and optional source-reported patch. The historical list is not individually reverified by FingerStore; see [catalog provenance](CATALOG_SOURCES.md).
 
 ## Save and apply modes
 
@@ -66,9 +66,9 @@ Configuration remains at `config.conf`, original property snapshot at `original.
 
 ## Catalog and version semantics
 
-The number **100** refers to distinct catalog device entries and baseline example fingerprints. Version changes generate a different **synthetic sample** for the same entry. The Android 8–16 menu is a demonstration tool, not an official update catalog or device-compatibility database.
+The number **100** refers to distinct built-in device profiles. There are **186 recorded source fingerprints** across the available version options (Android 7.1 through 12 in this historical snapshot). Switching versions selects a literal stock fingerprint found in the source; there is no fallback or fabricated version. Unsupported Android versions are absent from the selector. The source's optional `__YYYY-MM-DD` patch suffix is not part of the fingerprint and is transferred to the patch field only when present.
 
-The sample builds use recognizable Android build ID formats only to demonstrate string structure. Users must independently verify real values for an actual build and the matching security patch level.
+The list does **not** record a trustworthy `ro.build.date.utc` for each build. Selecting any stock entry therefore clears the build date field and requires manual entry of the actual matching firmware timestamp before applying. Neither a security-patch date nor an Android release date is substituted for the build date. This catalog is a historical community-contributed reference and is not a live certification, compatibility or attestation service.
 
 ## Diagnostics
 
