@@ -7,7 +7,7 @@
 - Edit Android build fingerprint, build timestamp, reported security-patch property, brand, device, retail model, product name and manufacturer.
 - Choose **After reboot (recommended)** to stage changes for startup, or **At runtime (unstable)** to apply immediately with root `resetprop -n`. Running apps may retain cached identity, and competing modules can override runtime values.
 - Opt-in partition identity mirroring, fingerprint-to-identity autofill and a Restore action.
-- **524 offline built-in device profiles / 839 recorded fingerprints** in the first multi-source snapshot, drawn from the full MagiskHide Props Config stock list, DeviceAnon community profiles and Pixel-Props OTA-derived packages. Android 13–17 records are now included. The picker shows only available recorded Android versions and offers an exact firmware-build selector; never generated from templates. Counts may change after a database refresh.
+- **524 offline built-in device profiles / 1,098 recorded fingerprint entries (1,082 distinct strings)** in the first multi-source snapshot, drawn from the full MagiskHide Props Config stock list, DeviceAnon community profiles and **328 Pixel-Props OTA-derived entries** across the project's 52 historical release collections. Android 13–17 records are now included. The picker shows only available recorded Android versions and offers an exact firmware-build selector; never generated from templates. Counts may change after a database refresh.
 - Mobile-first WebUI using Google Sans Flex and Material 3 styling, with optional Material Web controls and a native offline fallback. The WebUI is available in compatible module managers; stock Magisk does not provide KernelSU's WebUI bridge.
 - Local read-only property stability diagnostics.
 
