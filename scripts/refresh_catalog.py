@@ -8,6 +8,7 @@ External sources are read at build-time; the shipped WebUI works offline.
 from __future__ import annotations
 
 import argparse
+import base64
 import io
 import json
 import re
@@ -24,7 +25,7 @@ API = "https://api.github.com"
 RAW = "https://raw.githubusercontent.com"
 MH_SHA = "dbddef20bea59e12290b936eb751ed74d38456b0"
 DEVICEANON_SHA = "063439d9dc26f4b495d3e514af56a1ecbf5623cb"
-FP = re.compile(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+):([0-9]+(?:\.[0-9]+)*)/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+):(user|userdebug|eng)/([A-Za-z0-9_.-]+)$")
+FP = re.compile(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+):([0-9]+(?:\.[0-9]+)*)/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.()-]+):(user|userdebug|eng)/([A-Za-z0-9_.-]+)$")
 PATCH = re.compile(r"^\d{4}-\d\d-\d\d$")
 PARTITION_ONLY = ("ro.system.build.fingerprint", "ro.vendor.build.fingerprint",
                   "ro.product.build.fingerprint", "ro.bootimage.build.fingerprint")
@@ -215,9 +216,13 @@ class Catalog:
 
     def inspect_dumps(self):
         for repo, label in DUMPS:
-            url = RAW + "/" + repo + "/main/system/system/build.prop"
+            url = API + "/repos/" + repo + "/contents/system/system/build.prop"
             try:
-                p = props(read(url, limit=100_000).decode("utf-8"))
+                # DumprX branches are named after the firmware build, not
+                # "main". The Contents endpoint resolves the default branch.
+                blob = read_json(url)
+                if blob.get("encoding") != "base64": raise ValueError("unexpected dump encoding")
+                p = props(base64.b64decode(blob["content"]).decode("utf-8"))
                 global_fp = p.get("ro.build.fingerprint", "")
                 sys_fp = p.get("ro.system.build.fingerprint", "")
                 m = FP.fullmatch(global_fp) if global_fp else None
