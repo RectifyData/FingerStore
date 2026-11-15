@@ -63,6 +63,27 @@ for shell in ('sh','bash','busybox ash'):
   stock_huawei='HONOR/BLN-AL10/HWBLN-H:8.0.0/HONORBLN-AL10/528(C00):user/release-keys'
   r=run(m,env,'set',stock_huawei,'1704067200','-','0',sh=shell)
   assert r.returncode==0,(shell,'parentheses in stock build incremental',r.stderr)
+  # Catalog source lacks a build timestamp. Using '-' means apply the
+  # genuine fingerprint while leaving the real device build date alone.
+  r=run(m,env,'set',FP_B,'-','-','0',sh=shell)
+  assert r.returncode==0,(shell,'fingerprint-only runtime',r.stderr)
+  assert propdict(props)['ro.build.fingerprint']==FP_B
+  assert propdict(props)['ro.build.date.utc']==START['ro.build.date.utc'],(shell,'date incorrectly spoofed')
+  assert propdict(props)['ro.build.date']==START['ro.build.date']
+  assert 'epoch=-' in (m/'config.conf').read_text()
+  assert 'ro.build.date' not in (m/'system.prop').read_text(),(shell,'date emitted for missing source timestamp')
+  assert run(m,env,'apply',sh=shell).returncode==0
+  assert propdict(props)['ro.build.date.utc']==START['ro.build.date.utc']
+  r=run(m,env,'set',FP_B,'-','-','0','0','google','redfin','Pixel 5','redfin','Google','reboot',sh=shell)
+  assert r.returncode==0,(shell,'fingerprint-only reboot stage',r.stderr)
+  assert 'ro.build.fingerprint='+FP_B in (m/'system.prop').read_text()
+  assert 'ro.build.date' not in (m/'system.prop').read_text()
+  assert run(m,env,'apply',sh=shell).returncode==0
+  assert propdict(props)['ro.build.date.utc']==START['ro.build.date.utc']
+  # Switching back to an explicitly documented build timestamp still works.
+  r=run(m,env,'set',FP_A,'1704067200','-','0',sh=shell)
+  assert r.returncode==0,(shell,'resume full timestamp mode',r.stderr)
+  assert propdict(props)['ro.build.date.utc']=='1704067200'
   # Same date must validate independently of local timezone, including leap days.
   for tz in ('Pacific/Auckland','Asia/Kolkata','America/Sao_Paulo','UTC'):
    env['TZ']=tz
