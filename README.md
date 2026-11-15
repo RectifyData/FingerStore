@@ -1,19 +1,21 @@
 # FingerStore
 
-**FingerStore v1.4.5** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
+**FingerStore v1.4.6** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
 
 ## Core features
 
 - Edit Android build fingerprint, build timestamp, reported security-patch property, brand, device, retail model, product name and manufacturer.
 - Choose **After reboot (recommended)** to stage changes for startup, or **At runtime (unstable)** to apply immediately with root `resetprop -n`. Running apps may retain cached identity, and competing modules can override runtime values.
 - Opt-in partition identity mirroring, fingerprint-to-identity autofill and a Restore action.
-- Exactly **100 built-in profiles containing 186 recorded stock firmware fingerprints**, copied unchanged from the historical MagiskHide Props Config v137 list (community-curated and described upstream as certified). **No generated or fabricated fingerprints.** The Android picker only offers the actual OS versions recorded for each model. The included builds are historical (currently Android 7.1–12), not independently reverified against OEM firmware or current Play Integrity rules.
+- **524 offline built-in device profiles / 839 recorded fingerprints** in the first multi-source snapshot, drawn from the full MagiskHide Props Config stock list, DeviceAnon community profiles and Pixel-Props OTA-derived packages. Android 13–17 records are now included. The picker shows only available recorded Android versions and offers an exact firmware-build selector; never generated from templates. Counts may change after a database refresh.
 - Mobile-first WebUI using Google Sans Flex and Material 3 styling, with optional Material Web controls and a native offline fallback. The WebUI is available in compatible module managers; stock Magisk does not provide KernelSU's WebUI bridge.
 - Local read-only property stability diagnostics.
 
 ## Built-in stock fingerprints
 
-Select **Built-in fingerprint catalog**, search for a device, and choose one of the Android releases that has an actual recorded stock fingerprint. Selecting a profile fills the exact fingerprint and matching device identity, and sets a source-provided security patch when available. The original list does **not** provide build timestamps, so FingerStore leaves the date blank rather than inventing one: enter the true matching firmware date before applying. Stock fingerprints are historical references, not guarantees of compatibility with a custom ROM or attestation.
+Select **Built-in fingerprint catalog**, search for a device, select a source-recorded Android version, then select the **exact firmware build**. Each variant contains a literal fingerprint, source and available patch/date metadata. FingerStore fills the actual date when provided by an extracted OTA package; otherwise it clears the date and requires you to enter the matching genuine firmware build date. It never substitutes a guessed timestamp. Community fingerprints are not guaranteed to match your regional ROM or pass attestation.
+
+Five source integrations are included: [MagiskHide Props Config](https://github.com/Magisk-Modules-Repo/MagiskHidePropsConf), [DeviceAnon](https://github.com/UYIYUIYUIYUIJ/DeviceAnon), [Pixel-Props/build.prop](https://github.com/Pixel-Props/build.prop/releases), [ChkDumps](https://github.com/ChkDumps), and [Android Flash Index](https://github.com/TsinbeiLabs/android-flash-index). The last two are **firmware-discovery/verification references** where no exact global fingerprint can be extracted, not invented app-installable profiles. See [catalog provenance](docs/CATALOG_SOURCES.md).
 
 ## Magisk support
 
@@ -71,6 +73,9 @@ No real keyboxes, passwords, user-specific identifiers, `config.conf`, `original
 
 ## Build / test / release
 
+A network-connected host can regenerate the entirely offline built-in catalog with `python3 scripts/refresh_catalog.py`. The matching GitHub Actions refresh workflow provides the same import/validation step. Official releases use the checked-in snapshot, so the installed module requires **no network** to browse its fingerprint database.
+
+
 Source checks work on any host with Python 3, Node.js and shell tools:
 
 ```sh
@@ -92,7 +97,7 @@ python3 tests/test_release.py
 
 A source-only module ZIP without native binaries can also be built with `python3 scripts/build.py`, but it cannot enable the optional Zygisk feature. GitHub Actions always compiles, validates and packages all four ABIs for official release assets.
 
-All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.5 installable asset name is `build_fingerprint_date-144-1.4.4.zip`; the release also provides full source and SHA256 checksums.
+All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.6 installable asset name is `build_fingerprint_date-144-1.4.4.zip`; the release also provides full source and SHA256 checksums.
 
 ## References
 
