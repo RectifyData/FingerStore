@@ -186,8 +186,35 @@ body.m3-ready #catalogVersion{display:none}body.m3-ready #catalogVersionM3{displ
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
-const elements=['apply','reset','refresh','loadCurrent','reboot','catalogLoad','catalogSearch','catalogDevice','catalogVersion','catalogBuild','applyMode','zygiskToggle','integrityCapture','integrityCompare','integrityRefresh'];
+const elements=['apply','reset','refresh','loadCurrent','reboot','catalogApply','catalogLoad','catalogSearch','catalogDevice','catalogVersion','catalogBuild','catalogApplyMode','applyMode','zygiskToggle','integrityCapture','integrityCompare','integrityRefresh'];
 const identityFields=['brand','device','model','name','manufacturer'];
+const featureTabs=['Catalog','Editor','Status','Tools'];
+function showTab(name){
+ if(!featureTabs.includes(name))return;
+ for(const value of featureTabs){
+  const tab=$('tab'+value),panel=$('panel'+value),selected=value===name;
+  panel.hidden=!selected;
+  tab.classList.toggle('active',selected);
+  tab.setAttribute('aria-selected',selected?'true':'false');
+  tab.tabIndex=selected?0:-1;
+ }
+ $('moduleActions').hidden=(name!=='Editor'&&name!=='Status');
+ $('apply').hidden=(name!=='Editor');
+ $('reset').hidden=(name!=='Status');
+ $('reboot').hidden=(name!=='Status');
+}
+for(const name of featureTabs){
+ $('tab'+name).addEventListener('click',()=>showTab(name));
+ $('tab'+name).addEventListener('keydown',event=>{
+  const i=featureTabs.indexOf(name);
+  const next=event.key==='ArrowRight'?featureTabs[(i+1)%featureTabs.length]:
+    event.key==='ArrowLeft'?featureTabs[(i+featureTabs.length-1)%featureTabs.length]:
+    event.key==='Home'?featureTabs[0]:
+    event.key==='End'?featureTabs[featureTabs.length-1]:null;
+  if(next){event.preventDefault();showTab(next);$('tab'+next).focus();}
+ });
+}
+showTab('Catalog');
 let autoModel=''; let lastAutofillFingerprint=null; let dirty=false;
 let active = {}, cfg = {}, moduleDir = '/data/adb/modules/build_fingerprint_date';
 const hasBridge = !!(window.ksu && typeof window.ksu.exec === 'function');
@@ -237,18 +264,18 @@ function catalogBuild(record,version){
 function previewCatalog(){
  const d=currentCatalog(),v=$('catalogVersion').value,b=catalogBuild(d,v);
  $('catalogPreview').textContent=d&&b
-   ? d.label+' · Android '+v+'\n'+b.fingerprint+'\nSecurity patch: '+(b.patch||'not documented')+
-     '\nBuild date: '+(b.date||'not documented')+'\nSources: '+(b.sources||[]).join(', ')+
-     (b.note?'\n'+b.note:'')
+   ? b.fingerprint+'\nPatch: '+(b.patch||'unchanged')+' · '+(b.sources||[]).join(', ')
    : 'No recorded fingerprint for this device and Android version.';
+ $('catalogDateHint').textContent=b&&b.date
+   ? 'Source build date: '+b.date
+   : 'Build date unavailable. Applying keeps your existing device build date (it may not match this stock firmware).';
 }
 function syncCatalogBuilds(){
  const d=currentCatalog(),v=$('catalogVersion').value,builds=catalogBuilds(d,v),base=$('catalogBuild'),old=base.value;
  base.innerHTML=builds.map((b,i)=>'<option value="'+i+'">'+escapeHtml(b.fingerprint.split('/').slice(-1)[0].split(':')[0])+
    (b.patch?' · '+escapeHtml(b.patch):'')+' · '+escapeHtml((b.sources||[]).join(', '))+'</option>').join('');
  base.value=old!==''&&Number.isInteger(Number(old))&&Number(old)>=0&&Number(old)<builds.length?old:(builds.length?'0':'');
- $('catalogBuildHint').textContent=builds.length+' actual recorded build'+(builds.length===1?'':'s')+' for Android '+v+
-   '. Exact strings are preserved; no Android version templates.';
+ $('catalogBuildHint').textContent=builds.length+' recorded build'+(builds.length===1?'':'s')+' for Android '+v+'.';
  previewCatalog();
 }
 function syncCatalogVersions(){
@@ -271,13 +298,24 @@ function filterCatalog(){
  $('catalogCount').textContent=stockCatalog.length+' devices · '+fingerprints+' builds';
  syncCatalogVersions();
 }
-function loadCatalogFingerprint(){
+function loadCatalogFingerprint(showEditor=true){
  const d=currentCatalog(),v=$('catalogVersion').value,b=catalogBuild(d,v);
- if(!d||!b)return notice('No documented stock build for that selection.','error');
+ if(!d||!b){notice('Choose a device and a recorded firmware build.','error');return false;}
  $('fingerprint').value=b.fingerprint;$('autofill').checked=false;
  for(const f of identityFields)$(f).value=f==='name'?d.product:f==='device'?d.device:f==='model'?d.model:f==='manufacturer'?d.manufacturer:d.brand;
- $('date').value=b.date||'';$('patch').value=b.patch||'';updateAuto();dirty=true;
- notice('Recorded fingerprint loaded. '+(b.date?'Source-provided firmware date included.':'Enter the matching firmware build date before applying.')+' Source: '+(b.sources||[]).join(', '));
+ $('date').value=b.date||'';$('patch').value=b.patch||'';
+ $('applyMode').value=$('catalogApplyMode').value||'reboot';
+ updateApplyMode();updateAuto();dirty=true;
+ if(showEditor){showTab('Editor');notice('Selected fingerprint loaded for editing.');}
+ return true;
+}
+async function applyCatalog(){
+ if(!currentCatalog()||!catalogBuild(currentCatalog(),$('catalogVersion').value))return notice('Choose a recorded firmware build first.','error');
+ if(!hasBridge)return notice('Open FingerStore through a root-enabled WebUI manager to apply fingerprints.','error');
+ if(!loadCatalogFingerprint(false))return;
+ // The catalog's own mode switch is authoritative: one direct click stages
+ // for reboot or applies via the existing checked root CLI.
+ await apply();
 }
 function showCatalogSources(){
  const trustedUrl=u=>/^https:\/\/(github\.com|dl\.google\.com)\//.test(u);
@@ -396,7 +434,7 @@ async function refresh(loadInputs=true){setBusy(true);notice('Reading properties
  $('statusText').textContent=enabled?'Custom properties enabled':'Original properties / overrides disabled';
  $('persistence').textContent=enabled?'Until you edit or restore · survives reboots':'Off · originals restored';
  $('dot').classList.toggle('on',enabled);
- if(loadInputs){
+ if(loadInputs&&!dirty){
    $('fingerprint').value=enabled?(cfg.fingerprint||''):(cfg.current_fingerprint||'');
    $('date').value=dateFromEpoch(enabled?cfg.epoch:cfg.current_epoch);
    $('patch').value=(enabled&&cfg.patch!=='-')?cfg.patch:'';
@@ -413,15 +451,16 @@ async function apply(){
  const fp=$('fingerprint').value.trim(),day=$('date').value,patch=$('patch').value.trim()||'-';
  for(const f of identityFields){const v=$(f).value.trim();if(v.length>90||(v&&!/^[A-Za-z0-9_][A-Za-z0-9_. +()\-]*$/.test(v)))return notice('Invalid identity field '+f,'error');}
  if(!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.()\-]+:(user|userdebug|eng)\/[a-zA-Z0-9_.-]+$/.test(fp))return notice('Fingerprint format invalid.','error');
- if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||patch!=='-'&&!/^\d{4}-\d{2}-\d{2}$/.test(patch))return notice('Invalid date or patch.','error');
- const epoch=Date.parse(day+'T00:00:00Z')/1000;
- if(!Number.isInteger(epoch)||epoch<946684800||epoch>4102444800||dateFromEpoch(epoch)!==day)return notice('Unsupported date.','error');
+ if(day&&!/^\d{4}-\d{2}-\d{2}$/.test(day))return notice('Build date must use YYYY-MM-DD or be blank to keep the original date.','error');
+ if(patch!=='-'&&!/^\d{4}-\d{2}-\d{2}$/.test(patch))return notice('Security patch must use YYYY-MM-DD.','error');
+ const epoch=day?Date.parse(day+'T00:00:00Z')/1000:null;
+ if(day&&(!Number.isInteger(epoch)||epoch<946684800||epoch>4102444800||dateFromEpoch(epoch)!==day))return notice('Unsupported build date.','error');
  
  const mode=$('applyMode').value||'runtime';setBusy(true);notice(mode==='reboot'?'Staging for reboot…':'Applying runtime changes (unstable)…');
  try{
-  await cmd(['set',fp,String(epoch),patch,$('partitions').checked?'1':'0',$('autofill').checked?'1':'0',...identityFields.map(f=>$(f).value.trim()),mode]);
+  await cmd(['set',fp,day?String(epoch):'-',patch,$('partitions').checked?'1':'0',$('autofill').checked?'1':'0',...identityFields.map(f=>$(f).value.trim()),mode]);
   dirty=false;const ok=await refresh(false);
-  notice(ok?(mode==='reboot'?'Saved for next reboot. Current Android properties are unchanged.':'Applied at runtime (UNSTABLE). Apps may need a restart or reboot.'):'Saved, but refresh failed. Reopen the UI.',ok?'':'error');
+  notice(ok?(mode==='reboot'?'Fingerprint staged for next reboot.'+(day?'':' Device build date will be preserved.'):'Applied at runtime (UNSTABLE).'+(day?'':' Device build date preserved.')+' Restart affected apps.'):'Saved, but refresh failed. Reopen the UI.',ok?'':'error');
  }catch(e){notice('Apply failed: '+e.message,'error');}finally{setBusy(false)}
 }
 async function reset(){if(!confirm('Restore the original properties now and disable overrides on the next reboot?'))return;setBusy(true);notice('Restoring…');try{await cmd(['disable']);const ok=await refresh(true);dirty=false;notice(ok?'Restored. Tap Reboot to reload original identity.':'Restoration requested, but state refresh failed. Reboot and verify.',ok?'':'error');}catch(e){notice('Restore failed: '+e.message,'error');}finally{setBusy(false)}}
@@ -437,8 +476,10 @@ $('catalogSearch').addEventListener('input',filterCatalog);
 $('catalogDevice').addEventListener('change',syncCatalogVersions);
 $('catalogBuild').addEventListener('change',previewCatalog);
 $('catalogVersion').addEventListener('change',syncCatalogBuilds);
-$('catalogLoad').addEventListener('click',loadCatalogFingerprint);
-$('applyMode').addEventListener('change',()=>{dirty=true;updateApplyMode();});
+$('catalogLoad').addEventListener('click',()=>loadCatalogFingerprint(true));
+$('catalogApply').addEventListener('click',applyCatalog);
+$('catalogApplyMode').addEventListener('change',()=>{const mode=$('catalogApplyMode').value;$('applyMode').value=mode;updateApplyMode();});
+$('applyMode').addEventListener('change',()=>{dirty=true;$('catalogApplyMode').value=$('applyMode').value;updateApplyMode();});
 $('integrityCapture').addEventListener('click',()=>integrityOperation('capture'));
 $('integrityCompare').addEventListener('click',()=>integrityOperation('compare'));
 $('integrityRefresh').addEventListener('click',()=>integrityOperation('report'));
