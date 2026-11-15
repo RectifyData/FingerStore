@@ -1,6 +1,6 @@
 # FingerStore
 
-**FingerStore v1.4.6** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
+**FingerStore v1.4.7** is a Magisk- and KernelSU-compatible systemless Android build identity module. The internal module ID stays `build_fingerprint_date` so existing configurations can be upgraded.
 
 ## Core features
 
@@ -13,7 +13,9 @@
 
 ## Built-in stock fingerprints
 
-Select **Built-in fingerprint catalog**, search for a device, select a source-recorded Android version, then select the **exact firmware build**. Each variant contains a literal fingerprint, source and available patch/date metadata. FingerStore fills the actual date when provided by an extracted OTA package; otherwise it clears the date and requires you to enter the matching genuine firmware build date. It never substitutes a guessed timestamp. Community fingerprints are not guaranteed to match your regional ROM or pass attestation.
+The mobile-first WebUI now uses four clean tabs: **Catalog**, **Editor**, **Status**, and **Tools**. In **Catalog**, search for a device, choose a source-recorded Android version and the exact stock firmware build. Choose **After reboot (recommended)** or **Now (unstable)**, then tap **Apply selected** to save/apply without switching pages. **Edit details** is optional for custom fields; the Editor tab also has its own Apply changes button. Status includes Restore and Reboot, and Tools contains optional Zygisk, local diagnostics and provenance links.
+
+Each build contains a literal source fingerprint and any known patch/date. If the exact firmware timestamp is provided by the OTA-derived source, FingerStore uses it. **If no authentic build date exists, applying uses fingerprint-only mode and leaves the device's existing build date intact** (which may not correspond to the selected stock firmware). You can optionally supply a matching date in Editor. No guessed timestamps or build IDs are generated. The catalog needs a compatible root-enabled WebUI bridge; **stock Magisk has no built-in WebUI host**, so use a supported WebUI manager or root CLI. Community fingerprints are not guaranteed to match your regional ROM or pass attestation.
 
 Five source integrations are included: [MagiskHide Props Config](https://github.com/Magisk-Modules-Repo/MagiskHidePropsConf), [DeviceAnon](https://github.com/UYIYUIYUIYUIJ/DeviceAnon), [Pixel-Props/build.prop](https://github.com/Pixel-Props/build.prop/releases), [ChkDumps](https://github.com/ChkDumps), and [Android Flash Index](https://github.com/TsinbeiLabs/android-flash-index). The last two are **firmware-discovery/verification references** where no exact global fingerprint can be extracted, not invented app-installable profiles. See [catalog provenance](docs/CATALOG_SOURCES.md).
 
@@ -97,7 +99,7 @@ python3 tests/test_release.py
 
 A source-only module ZIP without native binaries can also be built with `python3 scripts/build.py`, but it cannot enable the optional Zygisk feature. GitHub Actions always compiles, validates and packages all four ABIs for official release assets.
 
-All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.6 installable asset name is `build_fingerprint_date-144-1.4.4.zip`; the release also provides full source and SHA256 checksums.
+All releases are published as standalone GitHub prereleases, **without requiring acceptance into the KernelSU Modules catalog**. The v1.4.7 installable asset name is `build_fingerprint_date-147-1.4.7.zip`; the release also provides full source and SHA256 checksums.
 
 ## References
 

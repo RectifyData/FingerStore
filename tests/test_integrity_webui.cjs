@@ -5,7 +5,7 @@ for(const id of ['integrityTitle','integrityCapture','integrityCompare','integri
 const code=page.match(/<script>([\s\S]*?)<\/script>/)[1];
 new vm.Script(code); // parser validation independent of manager bridge
 const nodes={};
-const $=(id)=>nodes[id]||=( {textContent:'',value:'',disabled:false,checked:false,style:{},classList:{toggle(){},add(){},remove(){}},addEventListener(event,cb){this['on'+event]=cb}});
+const $=(id)=>nodes[id]||=( {textContent:'',value:'',disabled:false,checked:false,style:{},classList:{toggle(){},add(){},remove(){}},setAttribute(){},focus(){},addEventListener(event,cb){this['on'+event]=cb}});
 let baseline=false;let invocations=[];
 const w={document:{getElementById:$},Date,Promise,Error,console,confirm:()=>true};
 w.window=w;

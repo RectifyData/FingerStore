@@ -5,7 +5,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const required=['fingerprint','autofill','brand','device','model','name','manufacturer','reboot','apply'];
 for(const id of required) assert(html.includes(`id="${id}"`),'Missing '+id);
 const nodes={};
-function node(id){return nodes[id] ||= {value:'',checked:false,textContent:'',disabled:false,readOnly:false,style:{},classList:{toggle(){},add(){},remove(){}},addEventListener(event,cb){this['on'+event]=cb}}}
+function node(id){return nodes[id] ||= {value:'',checked:false,textContent:'',disabled:false,readOnly:false,style:{},classList:{toggle(){},add(){},remove(){}},setAttribute(){},focus(){},addEventListener(event,cb){this['on'+event]=cb}}}
 const samsung='samsung/r13sxxx/r13s:16/BP2A.250605.031.A3/S731BXXS6AZCH:user/release-keys';
 let captures=[],rebootCalls=0,allowed=false;
 const initial={enabled:'0',fingerprint:'',epoch:'',patch:'-',partitions:'0',autofill:'0',brand:'',device:'',model:'',name:'',manufacturer:'',current_fingerprint:samsung,current_epoch:'1754006400',current_patch:'2025-08-01',current_brand:'samsung',current_device:'r13s',current_model:'SM-S731B',current_name:'r13sxxx',current_manufacturer:'samsung',resetprop:'available'};

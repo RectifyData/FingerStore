@@ -1,4 +1,4 @@
-# FingerStore v1.4.6 — Technical reference
+# FingerStore v1.4.7 — Technical reference
 
 ## Scope
 
@@ -46,15 +46,15 @@ architecture before packaging to `zygisk/<abi>.so`.
 
 ## WebUI
 
-`webroot/index.html` contains the mobile-first editor with Google Sans Flex and Material 3 theme tokens. Material Web components for the catalog use an optional import-map/CDN loading path. When network access or custom elements are unavailable, native controls remain usable with Material 3 styling.
+`webroot/index.html` provides four accessible, independent tabs (Catalog, Editor, Status and Tools) using Google Sans Flex and Material 3 styling. The catalog directly invokes the same checked root CLI apply action as the Editor; selecting a build is no longer merely a copy-to-editor step. The action footer is visible only for the relevant Editor and Status features. Advanced identity fields, source details and diagnostics are collapsible. The Material Web select is optional: the native selector remains usable offline.
 
-`webroot/catalog.js` is a generated offline database containing **524 device profiles and 1,098 source fingerprint entries (1,082 distinct strings)** in the first v1.4.6 snapshot, including Android 13–17 records. It consolidates the entire historical MagiskHide Props Config list, DeviceAnon and OTA-derived Pixel-Props release assets; records list only the Android versions actually found in source data and preserve multiple firmware builds per version. The WebUI exposes a version selector and exact build selector with provenance. ChkDumps dumps and Google's Android Flash Index are integrated as **firmware references**, but partition-only fingerprints and bare build IDs are not turned into spoofable device profiles. See [source provenance](CATALOG_SOURCES.md) and [the refresh importer](../scripts/refresh_catalog.py).
+`webroot/catalog.js` is a generated offline database containing **524 device profiles and 1,098 source fingerprint entries (1,082 distinct strings)** in the first v1.4.7 snapshot, including Android 13–17 records. It consolidates the entire historical MagiskHide Props Config list, DeviceAnon and OTA-derived Pixel-Props release assets; records list only the Android versions actually found in source data and preserve multiple firmware builds per version. The WebUI exposes a version selector and exact build selector with provenance. ChkDumps dumps and Google's Android Flash Index are integrated as **firmware references**, but partition-only fingerprints and bare build IDs are not turned into spoofable device profiles. See [source provenance](CATALOG_SOURCES.md) and [the refresh importer](../scripts/refresh_catalog.py).
 
 ## Save and apply modes
 
-`sh bin/fpctl.sh set <fingerprint> <epoch> <patch-or-dash> <mirror-0|1> <autofill-0|1> <brand> <device> <model> <product> <manufacturer> <runtime|reboot>`
+`sh bin/fpctl.sh set <fingerprint> <epoch-or-dash> <patch-or-dash> <mirror-0|1> <autofill-0|1> <brand> <device> <model> <product> <manufacturer> <runtime|reboot>`
 
-The historical 4-payload-argument and 10-payload-argument forms are retained and default to `runtime` for backward compatibility. The WebUI defaults to `reboot` for a fresh selection.
+The historical 4-payload-argument and 10-payload-argument forms are retained and default to `runtime` for backward compatibility. The WebUI and Catalog default to `reboot`. A literal `-` as the epoch now **means no build-date override**. In both runtime and reboot-stage modes, the system.prop generator emits the selected fingerprint without fabricated `ro.build.date` or `ro.build.date.utc` entries, and live application leaves existing dates intact or restores an older FingerStore date override. Partition date mirrors are also omitted for this mode.
 
 - **`runtime`**: save validated configuration, regenerate `system.prop`, and apply to live properties through KernelSU `resetprop -n`. This path is explicitly unstable: Java-level cached Build values, existing processes, services or another module may disagree. Saved state remains active after reboot.
 - **`reboot`**: snapshot existing values into `original.props` before writing `system.prop`; atomically save config and generate boot-time overrides; do not call `resetprop` to change running properties in this command. The module's boot scripts reassert values after startup. Reboot is user-controlled.
@@ -66,9 +66,9 @@ Configuration remains at `config.conf`, original property snapshot at `original.
 
 ## Catalog and version semantics
 
-The number **100** refers to distinct built-in device profiles. There are **186 recorded source fingerprints** across the available version options (Android 7.1 through 12 in this historical snapshot). Switching versions selects a literal stock fingerprint found in the source; there is no fallback or fabricated version. Unsupported Android versions are absent from the selector. The source's optional `__YYYY-MM-DD` patch suffix is not part of the fingerprint and is transferred to the patch field only when present.
+The multi-source snapshot includes **524 device profiles with 1,098 source-recorded fingerprint entries**, including real Android 13–17 build records. Unsupported versions are absent from the selector, and each documented build can be chosen independently. Source-recorded patch dates remain separate from the fingerprint itself.
 
-The list does **not** record a trustworthy `ro.build.date.utc` for each build. Selecting any stock entry therefore clears the build date field and requires manual entry of the actual matching firmware timestamp before applying. Neither a security-patch date nor an Android release date is substituted for the build date. This catalog is a historical community-contributed reference and is not a live certification, compatibility or attestation service.
+Not every source records `ro.build.date.utc` (for example, most historical stock fingerprints do not). In that case, Catalog **applies the fingerprint immediately to the selected mode without setting a new date**. The current device date remains unchanged, and the UI explicitly discloses that it may not match the selected stock build. The Editor allows setting an exact known firmware date separately. Never infer the date from the fingerprint's Android version or security patch. This is an offline build-property catalog, not an attestation/Play Integrity service.
 
 ## Diagnostics
 

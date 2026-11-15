@@ -4,7 +4,7 @@ const html=fs.readFileSync(__dirname+'/../webroot/index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 for(const id of ['zygiskTitle','zygiskToggle','zygiskBadge','zygiskStatus'])assert(html.includes('id="'+id+'"'));
 const elements={};
-const el=id=>elements[id]||={textContent:'',value:id==='catalogVersion'?'14':'',innerHTML:'',checked:false,disabled:false,readOnly:false,style:{},classList:{add(){},remove(){},toggle(){}},addEventListener(e,f){this['on'+e]=f}};
+const el=id=>elements[id]||={textContent:'',value:id==='catalogVersion'?'14':'',innerHTML:'',checked:false,disabled:false,readOnly:false,style:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},focus(){},addEventListener(e,f){this['on'+e]=f}};
 const ctx={document:{getElementById:el},console,Date,Promise,Error,confirm:()=>true};ctx.window=ctx;
 let enabled=false, commands=[];
 ctx.ksu={moduleInfo:()=>JSON.stringify({moduleDir:'/data/adb/modules/build_fingerprint_date'}),exec(command,cb){

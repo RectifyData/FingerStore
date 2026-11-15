@@ -3,7 +3,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const html=fs.readFileSync(__dirname+'/../webroot/index.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const nodes={};
-function node(id){return nodes[id] ||= {value:'',checked:false,disabled:false,readOnly:false,textContent:'',style:{},classList:{names:new Set(),toggle(k,on){if(on)this.names.add(k);else this.names.delete(k)},add(...k){k.forEach(x=>this.names.add(x))},remove(...k){k.forEach(x=>this.names.delete(x))}},addEventListener(ev,cb){this['on'+ev]=cb}}}
+function node(id){return nodes[id] ||= {value:'',checked:false,disabled:false,readOnly:false,textContent:'',style:{},classList:{names:new Set(),toggle(k,on){if(on)this.names.add(k);else this.names.delete(k)},add(...k){k.forEach(x=>this.names.add(x))},remove(...k){k.forEach(x=>this.names.delete(x))}},setAttribute(){},focus(){},addEventListener(ev,cb){this['on'+ev]=cb}}}
 const fp='samsung/a24nsxx/a24:16/UP1A.250605.014/A245FXXU9EYK1:user/release-keys';
 const record={enabled:'1',fingerprint:fp,epoch:'1762905600',patch:'2025-10-01',partitions:'1',autofill:'1',brand:'samsung',device:'a24',model:'SM-A245F',name:'a24nsxx',manufacturer:'samsung',current_brand:'samsung',current_device:'a24',current_model:'SM-A245F',current_name:'a24nsxx',current_manufacturer:'samsung',current_fingerprint:fp,current_epoch:'1762905600',current_patch:'2025-10-01',resetprop:'available'};
 const captured=[];

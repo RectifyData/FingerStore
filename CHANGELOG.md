@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.4.7 — Apply directly from catalog and streamlined tabs
+
+- Fix the catalog action: **Apply selected** stages for reboot or applies at runtime using the exact selected, source-recorded fingerprint. **Edit details** remains optional; manual editor changes have their own Apply button.
+- Fix a major blocker for historical stock builds lacking a documented firmware timestamp. The new root CLI `epoch=-` mode writes the fingerprint **without inventing or overriding build dates**. This works for both runtime changes and after-reboot staging; it restores earlier FingerStore date overrides when appropriate.
+- Replace the crowded long page with four accessible tabs: **Catalog, Editor, Status, Tools**. Reduce explanatory cards, redundant controls and visual decoration; move advanced identity fields, provenance and optional features into collapsible sections. Keep Google Sans Flex and Material 3 styling with an offline native selector.
+- Add direct-action, missing-date, multiple-build, tab-navigation and reboot/runtime regression tests; preserve existing Magisk, KernelSU and optional Zygisk behavior.
+- Release remains experimental until physical-device validation. No claim of a Play Integrity or hardware attestation result.
+
+
 ## v1.4.6 — Multi-source stock fingerprint database
 
 - Expand from 100 devices / 186 builds to a checked-in **524-device, 1,098-entry** offline snapshot with Android 13–17 records. Import the full historical MagiskHide Props Config collection, community DeviceAnon records, and exact OTA-extracted Pixel-Props property values, including 328 imported Pixel records from all 52 available historical release collections.

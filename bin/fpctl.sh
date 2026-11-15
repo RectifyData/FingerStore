@@ -161,8 +161,12 @@ original_for() {
 # Snapshotting them only at boot can accidentally save already-overridden values.
 snapshot_targets() {
   snapshot ro.build.fingerprint || return 1
-  snapshot ro.build.date.utc || return 1
-  snapshot ro.build.date || return 1
+  # Catalog builds without a reliable timestamp keep the real device date.
+  # Never invent a date from the security patch or fingerprint build ID.
+  if [ "$EPOCH" != '-' ]; then
+    snapshot ro.build.date.utc || return 1
+    snapshot ro.build.date || return 1
+  fi
   [ "$PATCH" = '-' ] || snapshot ro.build.version.security_patch || return 1
   for field in $IDENTITY_FIELDS; do
     snapshot "ro.product.$field" || return 1
@@ -230,15 +234,25 @@ valid_config_identity() {
 apply_config() {
   read_config
   [ "$ENABLED" = 1 ] || return 0
-  valid_fp "$FP" && valid_epoch "$EPOCH" && valid_patch "$PATCH" && valid_partitions "$PARTITIONS" && valid_config_identity || { sayerr 'Stored configuration invalid; no changes applied'; return 2; }
-  HUMAN=$(human_date "$EPOCH")
-  [ -n "$HUMAN" ] || { sayerr 'Date formatter unavailable'; return 2; }
+  valid_fp "$FP" && { [ "$EPOCH" = '-' ] || valid_epoch "$EPOCH"; } && valid_patch "$PATCH" && valid_partitions "$PARTITIONS" && valid_config_identity || { sayerr 'Stored configuration invalid; no changes applied'; return 2; }
+  HUMAN=''
+  if [ "$EPOCH" != '-' ]; then
+    HUMAN=$(human_date "$EPOCH")
+    [ -n "$HUMAN" ] || { sayerr 'Date formatter unavailable'; return 2; }
+  fi
   RESETPROP=$(reset_cmd) || { sayerr 'KernelSU resetprop was not found'; return 2; }
   result=0
   apply_identity_props || result=1
   apply_one ro.build.fingerprint "$FP" || result=1
-  apply_one ro.build.date.utc "$EPOCH" || result=1
-  apply_one ro.build.date "$HUMAN" || result=1
+  if [ "$EPOCH" = '-' ]; then
+    # A previous explicit override may exist. Restore its original value,
+    # or leave the current date untouched if no override was ever saved.
+    apply_one ro.build.date.utc '' || result=1
+    apply_one ro.build.date '' || result=1
+  else
+    apply_one ro.build.date.utc "$EPOCH" || result=1
+    apply_one ro.build.date "$HUMAN" || result=1
+  fi
   if [ "$PATCH" = '-' ]; then
     apply_one ro.build.version.security_patch '' || result=1
   else
@@ -248,8 +262,13 @@ apply_config() {
     prefix="ro.$part.build"
     if [ "$PARTITIONS" = 1 ]; then
       apply_one "$prefix.fingerprint" "$FP" || result=1
-      apply_one "$prefix.date.utc" "$EPOCH" || result=1
-      apply_one "$prefix.date" "$HUMAN" || result=1
+      if [ "$EPOCH" = '-' ]; then
+        apply_one "$prefix.date.utc" '' || result=1
+        apply_one "$prefix.date" '' || result=1
+      else
+        apply_one "$prefix.date.utc" "$EPOCH" || result=1
+        apply_one "$prefix.date" "$HUMAN" || result=1
+      fi
     else
       apply_one "$prefix.fingerprint" '' || result=1
       apply_one "$prefix.date.utc" '' || result=1
@@ -266,10 +285,14 @@ generate_system_prop() {
   temp="$MODDIR/system.prop.new.$$"
   : > "$temp" || return 1
   if [ "$ENABLED" = 1 ]; then
-    valid_fp "$FP" && valid_epoch "$EPOCH" && valid_patch "$PATCH" && valid_partitions "$PARTITIONS" && valid_config_identity || { rm -f "$temp"; return 2; }
-    HUMAN=$(human_date "$EPOCH")
-    [ -n "$HUMAN" ] || { rm -f "$temp"; return 2; }
-    printf 'ro.build.fingerprint=%s\nro.build.date.utc=%s\nro.build.date=%s\n' "$FP" "$EPOCH" "$HUMAN" >> "$temp"
+    valid_fp "$FP" && { [ "$EPOCH" = '-' ] || valid_epoch "$EPOCH"; } && valid_patch "$PATCH" && valid_partitions "$PARTITIONS" && valid_config_identity || { rm -f "$temp"; return 2; }
+    printf 'ro.build.fingerprint=%s\n' "$FP" >> "$temp"
+    HUMAN=''
+    if [ "$EPOCH" != '-' ]; then
+      HUMAN=$(human_date "$EPOCH")
+      [ -n "$HUMAN" ] || { rm -f "$temp"; return 2; }
+      printf 'ro.build.date.utc=%s\nro.build.date=%s\n' "$EPOCH" "$HUMAN" >> "$temp"
+    fi
     [ "$PATCH" = '-' ] || printf 'ro.build.version.security_patch=%s\n' "$PATCH" >> "$temp"
     for field in $IDENTITY_FIELDS; do
       case "$field" in
@@ -293,6 +316,7 @@ generate_system_prop() {
       for part in $PARTS; do
         prefix="ro.$part.build"
         for suffix in fingerprint date.utc date; do
+          [ "$EPOCH" != '-' ] || [ "$suffix" = fingerprint ] || continue
           key="$prefix.$suffix"
           existing=$(propget "$key")
           snapshot_value=$(original_for "$key")
@@ -360,10 +384,12 @@ case "${1:-}" in
   set)
     case "$#" in 5|11|12) ;; *) sayerr 'Usage: set <fingerprint> <epoch> <patch-or-dash> <mirror-0-or-1> [<autofill-0-or-1> <brand> <device> <model> <product> <manufacturer>]'; exit 2 ;; esac
     valid_fp "$2" || { sayerr 'Fingerprint format invalid'; exit 2; }
-    valid_epoch "$3" || { sayerr 'Unix timestamp must represent a UTC date between 2000-01-01 and 2100-01-01'; exit 2; }
+    { [ "$3" = '-' ] || valid_epoch "$3"; } || { sayerr 'UTC date must be 2000-01-01 through 2100-01-01, or - to preserve the real device date'; exit 2; }
     valid_patch "$4" || { sayerr 'Security patch must be a real YYYY-MM-DD date or -'; exit 2; }
     valid_partitions "$5" || { sayerr 'Partition mirror must be 0 or 1'; exit 2; }
-    [ -n "$(human_date "$3")" ] || { sayerr 'Cannot format the UTC date on this Android build'; exit 2; }
+    if [ "$3" != '-' ]; then
+      [ -n "$(human_date "$3")" ] || { sayerr 'Cannot format the UTC date on this Android build'; exit 2; }
+    fi
     # Legacy five-argument calls still work and retain the v1.2 identity behavior.
     input_autofill=0 input_brand='' input_device='' input_model='' input_name='' input_manufacturer=''
     input_mode=runtime
