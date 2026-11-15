@@ -219,7 +219,7 @@ function syncCatalogBuilds(){
  const d=currentCatalog(),v=$('catalogVersion').value,builds=catalogBuilds(d,v),base=$('catalogBuild'),old=base.value;
  base.innerHTML=builds.map((b,i)=>'<option value="'+i+'">'+escapeHtml(b.fingerprint.split('/').slice(-1)[0].split(':')[0])+
    (b.patch?' · '+escapeHtml(b.patch):'')+' · '+escapeHtml((b.sources||[]).join(', '))+'</option>').join('');
- base.value=Number.isInteger(Number(old))&&Number(old)>=0&&Number(old)<builds.length?old:(builds.length?'0':'');
+ base.value=old!==''&&Number.isInteger(Number(old))&&Number(old)>=0&&Number(old)<builds.length?old:(builds.length?'0':'');
  $('catalogBuildHint').textContent=builds.length+' actual recorded build'+(builds.length===1?'':'s')+' for Android '+v+
    '. Exact strings are preserved; no Android version templates.';
  previewCatalog();
