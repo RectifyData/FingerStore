@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: build_fingerprint_date
 name: FingerStore
-summary: Magisk and KernelSU Android identity editor with optional runtime-only Zygisk injection and 100 authentic stock fingerprint profiles.
+summary: Magisk and KernelSU Android identity editor with optional runtime-only Zygisk injection and 500+ source-backed multi-manufacturer stock fingerprint profiles.
 description: README.md
 license: CC0-1.0
 homepage: https://github.com/RectifyData/FingerStore
