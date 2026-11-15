@@ -214,7 +214,7 @@ function filterCatalog(){
  const search=($('catalogSearch').value||'').trim().toLowerCase(),old=$('catalogDevice').value;
  const filtered=stockCatalog.filter(d=>(d.label+' '+d.model+' '+d.brand+' '+d.product+' '+d.device).toLowerCase().includes(search));
  const esc=v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
- $('catalogDevice').innerHTML=filtered.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label.replace(/ \\([\\d. &]+\\)$/,''))+'</option>').join('');
+ $('catalogDevice').innerHTML=filtered.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.label.replace(/ \([\d. &]+\)$/,''))+'</option>').join('');
  $('catalogDevice').value=filtered.some(d=>d.id===old)?old:(filtered[0]?filtered[0].id:'');
  $('catalogCount').textContent=stockCatalog.length+' stock profiles';
  syncCatalogVersions();
