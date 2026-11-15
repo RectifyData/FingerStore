@@ -1,0 +1,36 @@
+name: Refresh FingerStore built-in fingerprint catalog
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/multi-source-catalog
+    paths:
+      - scripts/refresh_catalog.py
+      - .github/workflows/catalog-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.repository == 'RectifyData/FingerStore'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: true
+      - name: Import literal fingerprints from all sources
+        run: python3 scripts/refresh_catalog.py --output webroot/catalog.js
+      - name: Validate generated catalog source syntax
+        run: node --check webroot/catalog.js
+      - name: Commit source-backed snapshot to this feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add webroot/catalog.js
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update offline fingerprint snapshot from attributed upstream sources'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
