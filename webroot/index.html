@@ -385,7 +385,7 @@ async function apply(){
  if($('autofill').checked)updateAuto();
  const fp=$('fingerprint').value.trim(),day=$('date').value,patch=$('patch').value.trim()||'-';
  for(const f of identityFields){const v=$(f).value.trim();if(v.length>90||(v&&!/^[A-Za-z0-9_][A-Za-z0-9_. +()\-]*$/.test(v)))return notice('Invalid identity field '+f,'error');}
- if(!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:(user|userdebug|eng)\/[a-zA-Z0-9_.-]+$/.test(fp))return notice('Fingerprint format invalid.','error');
+ if(!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.()\-]+:(user|userdebug|eng)\/[a-zA-Z0-9_.-]+$/.test(fp))return notice('Fingerprint format invalid.','error');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||patch!=='-'&&!/^\d{4}-\d{2}-\d{2}$/.test(patch))return notice('Invalid date or patch.','error');
  const epoch=Date.parse(day+'T00:00:00Z')/1000;
  if(!Number.isInteger(epoch)||epoch<946684800||epoch>4102444800||dateFromEpoch(epoch)!==day)return notice('Unsupported date.','error');
