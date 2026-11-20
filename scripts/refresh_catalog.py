@@ -94,11 +94,18 @@ class Catalog:
         self.errors = []
 
     def add(self, *, source, label, manufacturer, model, fingerprint,
-            patch="", date="", origin="", note=""):
+            patch="", date="", origin="", note="", build_prop=""):
         match = FP.fullmatch(fingerprint)
         if not match or match[7] != "user" or match[8] != "release-keys":
             self.errors.append("Invalid or non-stock fingerprint from " + source + ": " + fingerprint[:100])
             return False
+        # Preserve only exact OEM-derived full build.prop files. Never synthesize.
+        if build_prop:
+            if not isinstance(build_prop, str) or len(build_prop.encode('utf-8')) > 256_000:
+                raise ValueError('Invalid/oversized stock build.prop')
+            parsed = props(build_prop)
+            if parsed.get('ro.build.fingerprint') != fingerprint:
+                raise ValueError('Source build.prop must match selected global fingerprint')
         brand, product, device, version = match.group(1, 2, 3, 4)
         if not model or not label: return False
         self.sources[source]["recordsSeen"] += 1
@@ -122,6 +129,8 @@ class Catalog:
                 if source not in existing["sources"]: existing["sources"].append(source)
                 if not existing["patch"] and PATCH.fullmatch(patch): existing["patch"] = patch
                 if not existing["date"] and date: existing["date"] = date
+                if build_prop and not existing.get('buildProp'):
+                    existing['buildProp'] = build_prop
                 self.sources[source]["duplicates"] += 1
                 return False
         variant = {
@@ -129,6 +138,7 @@ class Catalog:
             "patch": patch if PATCH.fullmatch(patch) else "",
             "date": date if re.fullmatch(r"\d{4}-\d\d-\d\d", date) else "",
             "sources": [source], "origin": origin, "note": note,
+            **({"buildProp": build_prop} if build_prop else {}),
         }
         record["builds"][version].append(variant)
         self.fps.add(fingerprint)
@@ -230,7 +240,8 @@ class Catalog:
                 # "main". The Contents endpoint resolves the default branch.
                 blob = read_json(url)
                 if blob.get("encoding") != "base64": raise ValueError("unexpected dump encoding")
-                p = props(base64.b64decode(blob["content"]).decode("utf-8"))
+                raw_prop = base64.b64decode(blob["content"]).decode("utf-8")
+                p = props(raw_prop)
                 global_fp = p.get("ro.build.fingerprint", "")
                 sys_fp = p.get("ro.system.build.fingerprint", "")
                 m = FP.fullmatch(global_fp) if global_fp else None
@@ -243,7 +254,7 @@ class Catalog:
                              fingerprint=global_fp,
                              patch=p.get("ro.build.version.security_patch", ""),
                              date=epoch_day(p.get("ro.build.date.utc")),
-                             origin=url)
+                             origin=url, build_prop=raw_prop)
                     kind = "global"
                 else:
                     kind = "partition-only" if sys_fp else "missing-fingerprint"
