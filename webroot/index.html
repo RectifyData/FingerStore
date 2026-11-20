@@ -96,7 +96,7 @@ body.m3-ready #catalogVersion{display:none}body.m3-ready #catalogVersionM3{displ
   </nav>
   <div id="panelCatalog" role="tabpanel" class="tab-panel" aria-labelledby="tabCatalog"><section class="card" aria-labelledby="catalogTitle">
   <div class="row"><h2 id="catalogTitle" style="margin:0">Fingerprint catalog</h2><span class="token" id="catalogCount">Loading profiles…</span></div>
-  <p class="hint">Select a stock fingerprint. Only recorded builds are listed.</p>
+  <p class="hint">Built-in, read-only firmware catalog maintained by FingerStore. Users cannot add or import catalog entries.</p>
   <div class="field" style="margin-top:18px"><label for="catalogSearch">Search devices</label><input id="catalogSearch" type="search" placeholder="Search Pixel, Galaxy, OnePlus…" autocomplete="off"></div>
   <div class="two">
     <div class="field"><label for="catalogDevice">Device profile</label><select id="catalogDevice" aria-label="Stock device profile"></select></div>
@@ -107,6 +107,11 @@ body.m3-ready #catalogVersion{display:none}body.m3-ready #catalogVersionM3{displ
   </div>
   <div class="field"><label for="catalogBuild">Firmware build</label><select id="catalogBuild" aria-label="Recorded firmware build"></select><div class="hint" id="catalogBuildHint"></div></div>
   <div class="notice code-note catalog-preview" id="catalogPreview" role="status" aria-live="polite">Loading stock fingerprint catalog…</div>
+  <details id="catalogBuildPropDetails" style="margin:14px 0"><summary>Full stock build.prop (read-only)</summary>
+    <p class="hint">The original file appears only when the maintainer has verified and bundled it for this exact firmware. Fingerprint-only entries never invent missing properties.</p>
+    <textarea id="catalogBuildProp" aria-label="Full stock build.prop" readonly spellcheck="false" style="margin-top:10px;min-height:220px" placeholder="No full build.prop available for this firmware."></textarea>
+    <div class="hint" id="catalogBuildPropState" role="status"></div>
+  </details>
   <div class="field"><label for="catalogApplyMode">Apply mode</label><select id="catalogApplyMode" aria-label="Catalog apply mode">
       <option value="reboot" selected>After reboot (recommended)</option><option value="runtime">Now (unstable)</option>
     </select></div>
@@ -263,6 +268,12 @@ function catalogBuild(record,version){
 }
 function previewCatalog(){
  const d=currentCatalog(),v=$('catalogVersion').value,b=catalogBuild(d,v);
+ const source = b && typeof b.buildProp==='string' ? b.buildProp : '';
+ const stock = source && source.split(/\r?\n/).some(line=>line.trim()==='ro.build.fingerprint='+b.fingerprint);
+ $('catalogBuildProp').value=stock?source:'';
+ $('catalogBuildPropState').textContent=stock
+   ? 'Original full build.prop bundled for this exact firmware ('+source.length+' characters). Not editable.'
+   : 'Full build.prop not archived for this profile. This is a fingerprint-only record, not a reconstructed firmware file.';
  $('catalogPreview').textContent=d&&b
    ? b.fingerprint+'\nPatch: '+(b.patch||'unchanged')+' · '+(b.sources||[]).join(', ')
    : 'No recorded fingerprint for this device and Android version.';
